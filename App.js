@@ -1,20 +1,42 @@
+import { useState } from 'react';
+import { ActivityIndicator } from 'react-native';
+import LoginScreen from './screens/Login';
+import RegistryScreen from './screens/Registry';
+import HomeScreen from './screens/Home';
+import DialogScreen from './screens/Dialog';
+import HistoryMessageScreen from './screens/HistoryMessage';
+import FileSharedScreen from './screens/FileShared';
+import { RootSiblingParent } from 'react-native-root-siblings';
+import AuthScreen from './screens/Auth';
+import { NavigationContainer } from '@react-navigation/native';
+import Stack from './utilities/Navigate'
+import HttpService from './services/HttpService';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
 
 export default function App() {
+
+
+  // HttpService.Post('api/Get')
+
+  // const [indicator, setIndicator] = useState(false);
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <RootSiblingParent>
+      <StatusBar style="dark" />
+      {/* <ActivityIndicator size="large" color="blue" animating={indicator} /> */}
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{
+          headerShown: false, gestureEnabled: false
+        }}>
+          <Stack.Screen name="Auth" component={AuthScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Registry" component={RegistryScreen} />
+          <Stack.Screen name="Dialog" component={DialogScreen} />
+          <Stack.Screen name="HistoryMessage" component={HistoryMessageScreen} />
+          <Stack.Screen name="FileShared" component={FileSharedScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </RootSiblingParent >
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
