@@ -39,8 +39,8 @@ export default function HistoryMessageScreen({ navigation, route }) {
         </View>
 
         <View style={{ alignItems: 'center' }}>
-            {infoGroup.avatar ? (<Image source={{ uri: infoGroup.avatar }} style={{ width: 64, height: 64 }} />)
-                : (<Image source={avatarDefault} style={{ width: 64, height: 64 }} />)}
+            {infoGroup.avatar ? (<Image source={{ uri: infoGroup.avatar }} style={{ width: 64, height: 64, borderRadius: 64 }} />)
+                : (<Image source={avatarDefault} style={{ width: 64, height: 64, borderRadius: 64 }} />)}
 
             <Text style={{ marginTop: 8, fontSize: Size.text + 2, fontWeight: '500' }}>{infoGroup.infoGroupItemName}</Text>
         </View>

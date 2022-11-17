@@ -240,10 +240,11 @@ export default function DialogScreen({ navigation, route }) {
         // Keyboard.addListener('keyboardDidHide', _keyboardDidHide);
 
         // cleanup function
-        return () => {
-            Keyboard.removeListener('keyboardDidShow', _keyboardDidShow);
-            // Keyboard.removeListener('keyboardDidHide', _keyboardDidHide);
-        };
+        // return () => {
+        //     Keyboard.removeListener('keyboardDidShow', _keyboardDidShow);
+        //     // Keyboard.removeAllListeners('keyboardDidShow');
+        //     // console.log(_keyboardDidShow, '_keyboardDidShow');
+        // };
     }, [])
 
     if (hasCameraPermission === undefined) {
@@ -312,24 +313,27 @@ export default function DialogScreen({ navigation, route }) {
             // base64: true
         });
         // console.log(result, 'img');
-        if (!result.cancelled) {
-            setImage(result.uri);
+        if (!result.canceled) {
+            const { assets } = result;
+            setImage(assets[0].uri);
             setShowModalImg(false);
+
+            // let formData = new FormData();
+
+            // formData.append('file', assets[0]);
+            // formData.append('_groupID', '63625e366cca054bf5858837');
 
             // fetch('https://chat.cybercode88.com/api/util/upload', {
             //     method: 'POST',
             //     headers: {
             //         Accept: 'application/json',
             //         'Content-Type': 'multipart/form-data',
-            //         'Authorization': 'Bearer ' + localStore.token
+            //         'Authorization': 'Bearer ' + localStore.token,
             //     },
-            //     body: {
-            //         _groupID: '63625e366cca054bf5858837',
-            //         file: result.
-            //     },
+            //     body: formData,
             // }).then(res => res.json())
             //     .then(res => {
-            //         console.log(res, 'ifmk');
+            //         console.log(res, 'fgffg');
             //     })
             //     .catch((error) => console.error(error))
         }
@@ -388,8 +392,8 @@ export default function DialogScreen({ navigation, route }) {
                     }
 
                     return (isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
-                        {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32 }} />
-                            : <Image source={avatarDefault} style={{ width: 32, height: 32 }} />}
+                        {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
+                            : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
 
                         <View style={styles.messageItemRight}>
                             <Text style={styles.messageItemRightName}>{fromName}</Text>
@@ -400,8 +404,8 @@ export default function DialogScreen({ navigation, route }) {
                             </View>)}
                         </View>
                     </TouchableOpacity>) : (<TouchableOpacity style={[styles.messageItem]} activeOpacity={1}>
-                        {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32 }} />
-                            : <Image source={avatarDefault} style={{ width: 32, height: 32 }} />}
+                        {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
+                            : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
 
                         <View style={styles.messageItemLeft}>
                             <Text style={styles.messageItemLeftName}>{fromName}</Text>
@@ -485,8 +489,8 @@ export default function DialogScreen({ navigation, route }) {
                             height: 56,
                             justifyContent: 'center',
                         }}>
-                        {itemGroup.avatar ? <Image source={{ uri: itemGroup.avatar }} style={{ width: 32, height: 32 }} />
-                            : <Image source={avatarDefault} style={{ width: 32, height: 32 }} />}
+                        {itemGroup.avatar ? <Image source={{ uri: itemGroup.avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
+                            : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
                     </TouchableOpacity>
                 </View>
 

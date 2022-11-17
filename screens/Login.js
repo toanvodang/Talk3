@@ -181,7 +181,7 @@ const HEIGHT_HEADER = Size.deviceheight,
             padding: 30,
             maxWidth: 420,
             width: '100%',
-            // backgroundColor:'red'
+            // backgroundColor: 'red'
         },
         inner: {
             flex: 1,
@@ -211,8 +211,9 @@ const HEIGHT_HEADER = Size.deviceheight,
             color: '#4478f5'
         },
         sizeBgLogin: {
-            maxHeight: Size.deviceWidth * 1.21,
-            maxWidth: Size.deviceWidth
+            // maxHeight: Size.deviceWidth * 1.21,
+            // maxWidth: Size.deviceWidth
+            flex: 1
         },
         styViewForgotPass: {
             marginTop: 15,

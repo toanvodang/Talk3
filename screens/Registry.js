@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
     KeyboardAvoidingView, View, Text, Image,
     TextInput, TouchableOpacity, StyleSheet,
@@ -11,24 +11,46 @@ import { Size } from '../utilities/Styles';
 import { Feather } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-root-toast';
+import HttpService from '../services/HttpService';
+import { storeData, LocalStore } from '../services/LocalStorageService';
+import Constants from '../utilities/Constants';
 
 export default function RegistryScreen({ navigation }) {
-
-    const [hidePass, setHidePass] = React.useState(true)
-    const [hideRePass, setHideRePass] = React.useState(true)
-    const [InfoLogin, setInfoLogin] = React.useState({
+    const refPass = useRef()
+    const refRePass = useRef()
+    const [hidePass, setHidePass] = useState(true)
+    const [hideRePass, setHideRePass] = useState(true)
+    const [offsetKeyboard, setOffsetKeyboard] = useState(0);
+    const [InfoLogin, setInfoLogin] = useState({
         userName: null,
         passWord: null,
         rePassWord: null
     })
 
-    const refPass = React.useRef()
-    const refRePass = React.useRef()
+    // useEffect(() => {
+    //     // console.log(Keyboard, 'kbn');
+    //     Keyboard.addListener('keyboardDidShow', _keyboardDidShow);
+    //     Keyboard.addListener('keyboardDidHide', _keyboardDidHide);
+
+    //     // cleanup function
+    //     return () => {
+    //         Keyboard.removeListener('keyboardDidShow', _keyboardDidShow);
+    //         Keyboard.removeListener('keyboardDidHide', _keyboardDidHide);
+    //     };
+    // }, [])
+
+    // const _keyboardDidShow = () => {
+    //     setOffsetKeyboard(250);
+    // }
+
+    // const _keyboardDidHide = () => {
+    //     setOffsetKeyboard(0);
+    // }
 
     const { topLogin, sizeBgLogin, botLogin, leftIcon, fromInput,
-        text, inputStyle, control, formControl, styTextForgotPass,
+        text, inputStyle, control, formControl,
         styViewRegister, styTextRegister, styTextRegisterNow, container,
-        styViewForgotPass, styTextLogin, styViewLogin, inner } = styles;
+        styTextLogin, styViewLogin, inner } = styles;
 
     const handleRegistry = () => {
         Keyboard.dismiss()
@@ -48,14 +70,31 @@ export default function RegistryScreen({ navigation }) {
             Toast.show('Mật khẩu không khớp', { position: Toast.positions.CENTER });
         }
         else {
-            Toast.show('Hi ' + InfoLogin.userName, { position: Toast.positions.CENTER });
+            // Toast.show('Hi ' + InfoLogin.userName, { position: Toast.positions.CENTER });
 
-            navigation.navigate('Login');
+            // navigation.navigate('Login');
+
+            HttpService.Post('api/auth/signup', { password: passWord, username: userName })
+                .then(res => {
+                    if (res) {
+                        const { data, success, error } = res;
+
+                        if (success == 1) {
+                            storeData({ storeKey: Constants.AUTH_STORAGE, value: { userName: userName, token: data } });
+                            LocalStore.setStore(userName, data)
+                            navigation.navigate('Home');
+                        }
+                        else {
+                            Toast.show(error, { position: Toast.positions.CENTER });
+                        }
+                    }
+                })
         }
     }
 
     return (<KeyboardAvoidingView
-        extraScrollHeight={150}
+        // extraScrollHeight={700}
+        keyboardVerticalOffset={0}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={container}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -179,8 +218,9 @@ const HEIGHT_HEADER = Size.deviceheight,
             color: '#4478f5'
         },
         sizeBgLogin: {
-            maxHeight: 350 * 1.21,
-            maxWidth: 350
+            // maxHeight: 350 * 1.21,
+            // maxWidth: 350
+            flex: 1
         },
         styViewForgotPass: {
             marginTop: 15,
