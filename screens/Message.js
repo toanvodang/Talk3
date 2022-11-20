@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-    View, Text, TouchableOpacity, StyleSheet, Modal,
+    View, Text, TouchableOpacity, StyleSheet,
     Image, LayoutAnimation, TouchableWithoutFeedback
 } from 'react-native';
 import { Size } from '../utilities/Styles';
@@ -11,13 +11,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { LocalStore } from '../services/LocalStorageService';
 import moment from "moment";
 import SocketIOService from '../services/SocketIOService';
+import Modal from 'react-native-modal';
+import Toast from 'react-native-root-toast';
 
-
-function MessageFilter({ setShowFilter, navigation }) {
-    const refInputFilter = useRef()
-    const [inputFilter, setInputFilter] = useState({ value: null, isFocus: true })
-    const [showFriend, setShowFriend] = useState(true)
-    const [showGroup, setShowGroup] = useState(true)
+function MessageFilter({ setShowFilter, navigation, data }) {
+    const refInputFilter = useRef();
+    const [inputFilter, setInputFilter] = useState({ value: null, isFocus: true });
+    const [showFriend, setShowFriend] = useState(true);
+    const [showGroup, setShowGroup] = useState(true);
+    const [dataFilter, setDataFilter] = useState({ friend: [], group: [] });
 
     const toggleOpenShowFriend = () => {
         setShowFriend(!showFriend);
@@ -28,6 +30,15 @@ function MessageFilter({ setShowFilter, navigation }) {
         setShowGroup(!showGroup);
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     };
+
+    const handleFilter = () => {
+        if (inputFilter.value && inputFilter.value !== '') {
+            const { myGroups } = data;
+        }
+        else {
+            setDataFilter({ friend: [], group: [] });
+        }
+    }
 
     return (<View>
         <View style={{ flexDirection: 'row', paddingVertical: 16, marginLeft: -15, alignItems: 'center' }}>
@@ -48,10 +59,12 @@ function MessageFilter({ setShowFilter, navigation }) {
                     ref={refInputFilter}
                     onBlur={() => setInputFilter({ ...inputFilter, isFocus: false })}
                     onFocus={() => setInputFilter({ ...inputFilter, isFocus: true })}
-                    onChangeText={value => setInputFilter({ ...inputFilter, value })}
+                    onChangeText={value => {
+                        setInputFilter({ ...inputFilter, value })
+                    }}
                     value={inputFilter.value}
                     autoCapitalize={"none"}
-                    // onSubmitEditing={handleFilter}
+                    onSubmitEditing={handleFilter}
                     style={[styles.inputStyle, { paddingLeft: 5, color: 'rgb(17, 24, 39)' }]}
                 />
             </View>
@@ -140,11 +153,13 @@ function MessageFilter({ setShowFilter, navigation }) {
 }
 
 export default function MessageScreen({ navigation }) {
-    // console.log(socket, 'ss');
     const refUserInfo = useRef();
     const [showBtnCreateGroup, setShowBtnCreateGroup] = useState(false);
-    const [showModalCreateGroup, setShowModalCreateGroup] = useState(true);
-    const [groupInfo, setGroupInfo] = useState({ groupPrefix: null, name: null });
+    const [showModalCreateGroup, setShowModalCreateGroup] = useState(false);
+    const [groupInfo, setGroupInfo] = useState({
+        groupPrefix: { placeHolder: '@nhom_cua_ban', isValid: true, value: null },
+        name: { placeHolder: 'Tên nhóm', isValid: true, value: null }
+    });
     const [isShowFriend, setIsShowFriend] = useState(true);
     const [showFilter, setShowFilter] = useState(false);
     const [focus, setFocus] = useState();
@@ -155,8 +170,7 @@ export default function MessageScreen({ navigation }) {
     const refGroupPrefix = useRef();
 
     const handleSetUserInfo = useCallback((data) => {
-        const { me, lastMessages } = data,
-            { messages } = lastMessages;
+        const { me } = data;
 
         if (me.avatar) {
             me.avatar = 'https://chat.cybercode88.com/' + me.avatar;
@@ -165,10 +179,6 @@ export default function MessageScreen({ navigation }) {
             me.avatar = null;
         }
 
-        messages.sort((a, b) => {
-            return parseInt(b.createdAt) - parseInt(a.createdAt);
-        });
-        // console.log(data, 'handleSetUserInfo--')
         refUserInfo.current = { ...data };
         setUserInfo({ ...data });
     }, []);
@@ -192,7 +202,6 @@ export default function MessageScreen({ navigation }) {
         })
     }, []);
 
-
     const handleMessage = useCallback((data) => {
         const { lastMessages } = refUserInfo.current,
             { messages } = lastMessages,
@@ -206,7 +215,6 @@ export default function MessageScreen({ navigation }) {
             }
         })
     }, []);
-
 
     useEffect(() => {
         // socket.on('connect', () => console.log(socket.id, 'connect--'))
@@ -232,18 +240,24 @@ export default function MessageScreen({ navigation }) {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     };
 
-    const handleNavDialog = (itemGroup) => {
-
-    }
-
     const renderLastMessage = () => {
-        const { lastMessages, friendsOnline, me } = userInfo,
+        const { lastMessages, friendsOnline, me, myGroups } = userInfo,
             { messages, infoGroup, fromUsersList } = lastMessages;
+
+        const filterGroupNotInMessage = myGroups.filter(item => {
+            return !messages.find(itemMess => itemMess.to == item._id);
+        })
+
+        const mergeGroupToMessage = [...filterGroupNotInMessage, ...messages];
+
+        mergeGroupToMessage.sort((a, b) => {
+            return parseInt(b.createdAt) - parseInt(a.createdAt);
+        });
 
         return <View style={{ height: Size.deviceheight - 235 }}>
             <ScrollView>
-                {messages.map(item => {
-                    const infoGroupItem = infoGroup[item.to],
+                {mergeGroupToMessage.map(item => {
+                    const infoGroupItem = infoGroup[item.to] || { ...item, isParallel: 0, to: item._id },
                         messageLastFrom = fromUsersList[item.from];
 
                     let infoGroupItemName = '',
@@ -265,8 +279,11 @@ export default function MessageScreen({ navigation }) {
                     else if (messageLastFrom) {
                         messageLastFromName = messageLastFrom.username + ': ' + messageLast;
                     }
+                    else {
+                        messageLastFromName = '@' + item.groupPrefix.toLowerCase();
+                    }
 
-                    if (infoGroupItem.isParallel == 1) {
+                    if (infoGroupItem && infoGroupItem.isParallel == 1) {
                         const { createdBy, members } = infoGroupItem;
 
                         if (createdBy && createdBy._id == me._id) {
@@ -317,23 +334,59 @@ export default function MessageScreen({ navigation }) {
             </ScrollView></View>
     }
 
-    const handleShowModalCreateGroup = () => {
-        setShowBtnCreateGroup(false)
-    }
-
     const handleCreateGroup = () => {
         const { groupPrefix, name } = groupInfo;
-        // socket.emit('create_group', {
-        //     groupPrefix: "@g2",
-        //     name: "g22"
-        // }, (data) => {
-        //     console.log(data, 'create_group--');
-        // })
+
+        if (groupPrefix.isValid && name.isValid) {
+            socket.emit('create_group', {
+                groupPrefix: groupPrefix.value,
+                name: name.value
+            }, (res) => {
+                if (res) {
+                    const { success, error, data } = res;
+
+                    if (success == 1) {
+                        setShowModalCreateGroup(false);
+
+                        Toast.show('Đã tạo nhóm thành công', { position: Toast.positions.CENTER });
+
+                        const { myGroups, me } = refUserInfo.current;
+                        refUserInfo.current = {
+                            ...refUserInfo.current,
+                            myGroups: [{
+                                createdAt: moment().valueOf(),
+                                createdBy: me._id,
+                                groupPrefix: groupPrefix.value,
+                                name: name.value,
+                                groupid: moment().format('DDMMyyyy') + '1',
+                                _id: data._id
+                            }, ...myGroups]
+                        };
+
+                        setUserInfo({ ...refUserInfo.current });
+
+                        setGroupInfo({
+                            name: {
+                                ...name,
+                                value: null
+                            },
+                            groupPrefix: {
+                                ...groupPrefix,
+                                value: null
+                            }
+                        })
+                    }
+                    else if (error) {
+                        Toast.show(error, { position: Toast.positions.CENTER });
+                    }
+                }
+            })
+        }
     }
 
     return (<View style={styles.container}>
         <TouchableWithoutFeedback onPress={() => setShowBtnCreateGroup(false)}>
-            {showFilter ? <MessageFilter setShowFilter={toggleShowFilter} navigation={navigation} /> :
+            {showFilter ? <MessageFilter setShowFilter={toggleShowFilter} navigation={navigation} data={refUserInfo.current} /> :
                 (<View>
                     <View style={{ flexDirection: 'row', paddingVertical: 15 }}>
                         {userInfo && userInfo.me.avatar ? <Image source={{ uri: userInfo.me.avatar }} style={{ width: 48, height: 48, borderRadius: 48 }} />
@@ -404,7 +457,10 @@ export default function MessageScreen({ navigation }) {
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
                                         padding: 10
-                                    }} onPress={() => handleShowModalCreateGroup()}>
+                                    }} onPress={() => {
+                                        setShowBtnCreateGroup(false);
+                                        setShowModalCreateGroup(true);
+                                    }}>
                                         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <Path d="M9.16006 10.87C9.06006 10.86 8.94006 10.86 8.83006 10.87C6.45006 10.79 4.56006 8.84 4.56006 6.44C4.56006 3.99 6.54006 2 9.00006 2C11.4501 2 13.4401 3.99 13.4401 6.44C13.4301 8.84 11.5401 10.79 9.16006 10.87Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path>
                                             <Path d="M16.41 4C18.35 4 19.91 5.57 19.91 7.5C19.91 9.39 18.41 10.93 16.54 11C16.46 10.99 16.37 10.99 16.28 11" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path>
@@ -445,36 +501,122 @@ export default function MessageScreen({ navigation }) {
                 </View>)}
         </TouchableWithoutFeedback>
 
-        <Modal animationType="slide" transparent={true} visible={showModalCreateGroup}>
-            <View style={styles.fromInput}>
+        <Modal
+            isVisible={showModalCreateGroup}
+            backdropColor={'#000'}
+            backdropOpacity={.5}
+            animationIn={'zoomInDown'}
+            animationOut={'zoomOutUp'}
+        >
+            <View style={{
+                justifyContent: 'center', backgroundColor: '#fff', borderRadius: 4, alignItems: 'center',
+                padding: 12,
+            }}>
+                <View style={{
+                    flexDirection: 'row',
+                    paddingBottom: 12,
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottomColor: 'rgb(243, 244, 246)',
+                    borderBottomWidth: 1,
+                    width: '100%'
+                }}>
+                    <Text>Tạo nhóm</Text>
+                    <TouchableOpacity onPress={() => setShowModalCreateGroup(false)}>
+                        <Ionicons name="close-circle-outline" size={Size.iconSize + 4} color="gray" />
+                    </TouchableOpacity>
+                </View>
                 <View style={styles.formControl}>
                     <Text style={styles.label}>Tên nhóm</Text>
                     <View style={[styles.control, focus == 'name' && styles.controlFocus]}>
                         <TextInput
-                            onChangeText={name => setGroupInfo({ ...groupInfo, name })}
-                            onFocus={() => setFocus('name')}
-                            onBlur={() => setFocus()}
-                            value={groupInfo.name}
+                            onChangeText={value => setGroupInfo({
+                                ...groupInfo,
+                                name: {
+                                    ...groupInfo.name,
+                                    value
+                                }
+                            })}
+                            onFocus={() => {
+                                setFocus('name');
+                                setGroupInfo({
+                                    ...groupInfo,
+                                    name: {
+                                        ...groupInfo.name,
+                                        isValid: true
+                                    }
+                                })
+                            }}
+                            onBlur={() => {
+                                setFocus();
+
+                                if (!groupInfo.name.value || groupInfo.name.value === '') {
+                                    setGroupInfo({
+                                        ...groupInfo,
+                                        name: {
+                                            ...groupInfo.name,
+                                            isValid: false
+                                        }
+                                    })
+                                }
+                            }}
+                            value={groupInfo.name.value}
                             ref={refGroupName}
                             returnKeyType={'done'}
-                            placeholder={'Tên nhóm'}
                             style={[styles.text, styles.inputStyle]} />
+
+                        {(!groupInfo.name.value || groupInfo.name.value === '') && <Text style={[styles.colorPlaceHolder, {
+                            position: 'absolute', height: 40, lineHeight: 40, left: 10
+                        }]}>{groupInfo.name.placeHolder}</Text>}
                     </View>
+                    {!groupInfo.name.isValid && <Text style={[styles.colorValid]}>Vui lòng nhập tên nhóm</Text>}
                 </View>
 
                 <View style={styles.formControl}>
                     <Text style={styles.label}>Prefix</Text>
                     <View style={[styles.control, focus == 'groupPrefix' && styles.controlFocus]}>
                         <TextInput
-                            onChangeText={groupPrefix => setGroupInfo({ ...groupInfo, groupPrefix })}
-                            value={groupInfo.groupPrefix}
-                            onFocus={() => setFocus('groupPrefix')}
-                            onBlur={() => setFocus()}
+                            onChangeText={value => setGroupInfo({
+                                ...groupInfo,
+                                groupPrefix: {
+                                    ...groupInfo.groupPrefix,
+                                    value
+                                }
+                            })}
+                            value={groupInfo.groupPrefix.value}
+                            onFocus={() => {
+                                setFocus('groupPrefix');
+                                setGroupInfo({
+                                    ...groupInfo,
+                                    groupPrefix: {
+                                        ...groupInfo.groupPrefix,
+                                        isValid: true
+                                    }
+                                })
+                            }}
+                            onBlur={() => {
+                                setFocus();
+
+                                if (!groupInfo.groupPrefix.value || groupInfo.groupPrefix.value === '') {
+                                    setGroupInfo({
+                                        ...groupInfo,
+                                        groupPrefix: {
+                                            ...groupInfo.groupPrefix,
+                                            isValid: false
+                                        }
+                                    })
+                                }
+                            }}
                             returnKeyType={'done'}
-                            placeholder={'@nhom_cua_ban'}
                             ref={refGroupPrefix}
-                            style={[styles.text, styles.inputStyle]} />
+                            style={[styles.inputStyle]} />
+
+                        {(!groupInfo.groupPrefix.value || groupInfo.groupPrefix.value === '') && <Text style={[styles.colorPlaceHolder, {
+                            position: 'absolute', height: 40, lineHeight: 40, left: 10
+                        }]}>{groupInfo.groupPrefix.placeHolder}</Text>}
                     </View>
+
+                    {!groupInfo.groupPrefix.isValid && <Text style={[styles.colorValid]}>Vui lòng nhập...</Text>}
                 </View>
 
                 <View style={styles.styViewLogin}>
@@ -484,41 +626,42 @@ export default function MessageScreen({ navigation }) {
                 </View>
             </View>
         </Modal>
-
     </View>
     )
 }
 
 const styles = StyleSheet.create({
+    colorPlaceHolder: {
+        color: '#767676'
+    },
+    colorValid: {
+        color: 'rgb(159, 18, 57)',
+        marginTop: 5
+    },
     styViewLogin: {
         width: '100%',
         height: 40,
         marginTop: 15,
-        backgroundColor: '#4461f2',
-        borderRadius: 8
+        backgroundColor: 'rgb(40, 84, 246)',
+        borderRadius: 4
     },
     styTextLogin: {
-        fontSize: Size.text - 2,
+        fontSize: Size.text,
         color: '#fff',
         fontWeight: '500',
         textAlign: 'center',
         lineHeight: 40
     },
-    fromInput: {
-        alignItems: 'center',
-        paddingHorizontal: 15
-    },
     formControl: {
         width: '100%',
-        marginTop: 30
+        marginTop: 15
     },
     control: {
         flexDirection: 'row',
-        height: 56,
-        borderRadius: 7,
-        backgroundColor: 'rgb(249, 250, 251)',
+        height: 40,
         borderWidth: 1,
-        borderColor: 'rgb(209, 213, 219)'
+        borderColor: 'transparent',
+        borderRadius: 4
     },
     controlFocus: {
         borderColor: 'rgb(59, 130, 246)'
@@ -633,6 +776,6 @@ const styles = StyleSheet.create({
         color: '#262626',
         fontSize: Size.text,
         fontWeight: '400',
-        height: 45
+        height: 40,
     }
 })

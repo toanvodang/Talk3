@@ -218,6 +218,7 @@ export default function SettingScreen() {
                             onBlur={() => setFocus()}
                             value={data.email}
                             ref={refEmail}
+                            placeholder='sss'
                             returnKeyType={'done'}
                             // onSubmitEditing={() => refPass.current.focus()}
                             style={[styles.text, styles.inputStyle]} />
