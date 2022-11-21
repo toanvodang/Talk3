@@ -4,25 +4,39 @@ import {
     TextInput, TouchableOpacity, StyleSheet,
     Platform, ScrollView,
     TouchableWithoutFeedback,
-    Keyboard,
+    Keyboard, Image
 } from 'react-native';
 import { Size } from '../utilities/Styles';
-import Svg, { Path } from 'react-native-svg';
+import Modal from 'react-native-modal';
+import { baseURL } from '../services/HttpService';
+import Svg, { Path, SvgUri } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 
 export default function FileSharedScreen({ navigation, route }) {
     const { params } = route;
-    const { itemGroup } = params;
+    const { itemGroup, lastMedia } = params;
     const [search, setSearch] = useState()
-
+    const [viewImage, setViewImage] = useState({ isShow: false, uri: null, fileType: null });
+    const [filterLastMedia, setFilterLastMedia] = useState([...lastMedia])
     const handleSearch = () => {
-        if (search && search !== '')
-            alert(search)
+        if (search && search !== '') {
+            const _filterLastMedia = lastMedia.filter(item => {
+                return item.fileName && item.fileName.toLowerCase().includes(search.toLowerCase());
+            })
+
+            setFilterLastMedia([..._filterLastMedia]);
+        }
+        else {
+            setFilterLastMedia([...lastMedia]);
+        }
     }
 
     return (<KeyboardAvoidingView
         extraScrollHeight={150}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}>
+        <StatusBar hidden={viewImage.isShow} />
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={{ flex: 1 }}>
                 <TouchableOpacity onPress={() => navigation.navigate('HistoryMessage', { itemGroup: { ...itemGroup } })}
@@ -70,7 +84,31 @@ export default function FileSharedScreen({ navigation, route }) {
                 </View>
 
                 <ScrollView>
-                    <TouchableOpacity style={styles.fileSharedItem} onPress={() => alert(1)}>
+                    {filterLastMedia.map(item => {
+                        const { fileType, path, _id, fileName, fileSize } = item;
+                        let _fileSizeToMb = '';
+
+                        if (fileSize && typeof (fileSize) === 'number') {
+                            if (fileSize >= 1048576) {
+                                _fileSizeToMb = fileSize / 1048576;
+                                _fileSizeToMb = _fileSizeToMb.toFixed(1) + ' MB';
+                            }
+                            else {
+                                _fileSizeToMb = fileSize / 1024;
+                                _fileSizeToMb = _fileSizeToMb.toFixed(1) + ' kB';
+                            }
+                        }
+
+                        return (<TouchableOpacity key={_id} style={styles.fileSharedItem}
+                            onPress={() => setViewImage({ isShow: true, uri: baseURL + path, fileType })}>
+                            <Svg width={20} height={20} data-v-bdfb0870="" aria-hidden="true" fill="rgb(107, 114, 128)" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"><Path data-v-bdfb0870="" fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></Path></Svg>
+                            <View style={styles.fileSharedItemInfo}>
+                                <Text style={styles.fileSharedItemName}>{fileName}</Text>
+                                <Text style={styles.fileSharedItemSize}>{_fileSizeToMb + ' '}</Text>
+                            </View>
+                        </TouchableOpacity>)
+                    })}
+                    {/* <TouchableOpacity style={styles.fileSharedItem} onPress={() => alert(1)}>
                         <Svg width={20} height={20} data-v-bdfb0870="" aria-hidden="true" fill="rgb(107, 114, 128)" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"><Path data-v-bdfb0870="" fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></Path></Svg>
                         <View style={styles.fileSharedItemInfo}>
                             <Text style={styles.fileSharedItemName}>file.png</Text>
@@ -84,10 +122,48 @@ export default function FileSharedScreen({ navigation, route }) {
                             <Text style={styles.fileSharedItemName}>file.png</Text>
                             <Text style={styles.fileSharedItemSize}>1.3MB</Text>
                         </View>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                 </ScrollView>
             </View>
         </TouchableWithoutFeedback>
+
+        <Modal
+            isVisible={viewImage.isShow}
+            backdropColor={'#000'}
+            backdropOpacity={.8}
+            animationIn={'zoomInDown'}
+            animationOut={'zoomOutUp'}
+        >
+            <View style={{
+                borderRadius: 4,
+                padding: 12,
+                flex: 1
+            }}>
+                <TouchableOpacity onPress={() => setViewImage({ isShow: false, uri: null, fileType: null })}>
+                    <Ionicons name="close-circle-outline" size={Size.iconSize + 4} color="#fff" />
+                </TouchableOpacity>
+
+                {(viewImage.fileType == 'image/png' || viewImage.fileType === 'image/jpeg')
+                    && <Image source={{ uri: viewImage.uri }} style={{
+                        width: '100%',
+                        height: '100%',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 6
+                    }} resizeMode={'contain'} />}
+
+                {viewImage.fileType === 'image/svg+xml' && <SvgUri
+                    width={'100%'}
+                    height={'100%'}
+                    style={{
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 6
+                    }}
+                    uri={viewImage.uri}
+                />}
+            </View>
+        </Modal>
     </KeyboardAvoidingView >)
 }
 

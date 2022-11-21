@@ -47,13 +47,13 @@ export default function DialogScreen({ navigation, route }) {
             const { data, success, error } = res;
 
             if (success == 1) {
+                console.log(data.friendsBlock, 'data');
                 if (refPreloadData.current) {
                     if (data.messages.length > 0) {
                         const { fromUsersList, media, lastMedia } = refPreloadData.current;
                         const _fromUsersList = data.fromUsersList;
                         const _media = data.media;
                         const _lastMedia = data.lastMedia;
-
                         let mergeFromUsersList = { ...fromUsersList };
                         let mergeMedia = { ...media };
                         let mergeLastMedia = { ...lastMedia };
@@ -108,69 +108,6 @@ export default function DialogScreen({ navigation, route }) {
                 Toast.show(error, { position: Toast.positions.CENTER });
             }
         });
-
-        // preloadMessage(payload, (res) => {
-        //     const { data, success, error } = res;
-
-        //     if (success == 1) {
-        //         if (preloadData) {
-        //             if (data.messages.length > 0) {
-        //                 const { fromUsersList, media, lastMedia } = preloadData;
-        //                 const _fromUsersList = data.fromUsersList;
-        //                 const _media = data.media;
-        //                 const _lastMedia = data.lastMedia;
-
-        //                 let mergeFromUsersList = { ...fromUsersList };
-        //                 let mergeMedia = { ...media };
-        //                 let mergeLastMedia = { ...lastMedia };
-
-        //                 for (let key in _fromUsersList) {
-        //                     if (!fromUsersList.hasOwnProperty(key)) {
-        //                         mergeFromUsersList = {
-        //                             ...mergeFromUsersList,
-        //                             [key]: { ..._fromUsersList[key] }
-        //                         }
-        //                     }
-        //                 }
-
-        //                 for (let key in _media) {
-        //                     if (!media.hasOwnProperty(key)) {
-        //                         mergeMedia = {
-        //                             ...mergeMedia,
-        //                             [key]: { ..._media[key] }
-        //                         }
-        //                     }
-        //                 }
-
-        //                 for (let key in _lastMedia) {
-        //                     if (!lastMedia.hasOwnProperty(key)) {
-        //                         mergeLastMedia = {
-        //                             ...mergeLastMedia,
-        //                             [key]: { ..._lastMedia[key] }
-        //                         }
-        //                     }
-        //                 }
-
-        //                 setPreloadData({
-        //                     ...preloadData,
-        //                     media: { ...mergeMedia },
-        //                     lastMedia: { ...mergeLastMedia },
-        //                     fromUsersList: { ...mergeFromUsersList },
-        //                     messages: [...data.messages, ...preloadData.messages]
-        //                 });
-        //             }
-        //             else {
-        //                 setIsLoadMore(false);
-        //             }
-        //         }
-        //         else {
-        //             setPreloadData({ ...data });
-        //         }
-        //     }
-        //     else if (success == 0 && error) {
-        //         Toast.show(error, { position: Toast.positions.CENTER });
-        //     }
-        // });
     }
 
     const handleMessage = useCallback((data) => {
@@ -478,7 +415,7 @@ export default function DialogScreen({ navigation, route }) {
 
                     <TouchableOpacity activeOpacity={.8} onPress={() => navigation.navigate('HistoryMessage', {
                         itemGroup: {
-                            ...refPreloadData,
+                            ...preloadData,
                             infoGroup: { ...itemGroup }
                         }
                     })}

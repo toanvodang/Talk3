@@ -18,12 +18,13 @@ export default function HomeScreen({ navigation }) {
     const objScreen = { Message: 'Message', Friend: 'Friend', Setting: 'Setting' }
 
     const [screen, setScreen] = useState(objScreen.Message);
-
+    const localStore = LocalStore.getStore();
     useEffect(() => {
+        console.log(localStore);
         () => {
             console.log('Home unmount');
         }
-    }, [])
+    }, [localStore.token])
 
     const handleSetScreen = (item) => {
         setScreen(item)
@@ -31,9 +32,9 @@ export default function HomeScreen({ navigation }) {
     };
 
     const handleLogOut = () => {
-        storeData({ storeKey: Constants.AUTH_STORAGE, value: null })
+        storeData({ storeKey: Constants.AUTH_STORAGE, value: null });
         LocalStore.setStore(null, null);
-        navigation.navigate('Login')
+        navigation.navigate('Login');
 
     }
     const sizeIcon = Size.iconSize + 6;

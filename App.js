@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import LoginScreen from './screens/Login';
 import RegistryScreen from './screens/Registry';
@@ -10,22 +9,15 @@ import { RootSiblingParent } from 'react-native-root-siblings';
 import AuthScreen from './screens/Auth';
 import { NavigationContainer } from '@react-navigation/native';
 import Stack from './utilities/Navigate'
-import HttpService from './services/HttpService';
 import { StatusBar } from 'expo-status-bar';
 
 export default function App() {
-
-
-  // HttpService.Post('api/Get')
-
-  // const [indicator, setIndicator] = useState(false);
-
   return (
     <RootSiblingParent>
       <StatusBar style="dark" />
       {/* <ActivityIndicator size="large" color="blue" animating={indicator} /> */}
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{
+        <Stack.Navigator initialRouteName={"Auth"} screenOptions={{
           headerShown: false, gestureEnabled: false
         }}>
           <Stack.Screen name="Auth" component={AuthScreen} />

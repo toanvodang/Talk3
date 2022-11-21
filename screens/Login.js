@@ -11,8 +11,9 @@ import { Size } from '../utilities/Styles';
 import { Feather } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-root-toast';
-import { storeData, LocalStore } from '../services/LocalStorageService';
+import { storeData, getData, LocalStore } from '../services/LocalStorageService';
 import Constants from '../utilities/Constants';
+import HttpService from '../services/HttpService';
 
 export default function LoginScreen({ navigation }) {
     const [hidePass, setHidePass] = useState(true)
@@ -21,6 +22,13 @@ export default function LoginScreen({ navigation }) {
         userName: null,
         passWord: null
     })
+
+    useEffect(() => {
+        (async () => {
+            const getStore = await getData(Constants.AUTH_STORAGE);
+        })()
+
+    }, [])
 
     const refPass = useRef()
 
@@ -39,32 +47,29 @@ export default function LoginScreen({ navigation }) {
         }
         else {
             const obj = { password: passWord, username: userName };
-            fetch('https://chat.cybercode88.com/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(obj),
-            }).then(res => res.json())
-                .then(res => {
-                    if (res) {
-                        const { success, data, error } = res;
-                        if (success === 1 && data) {
-                            storeData({ storeKey: Constants.AUTH_STORAGE, value: { userName: userName, token: data } });
-                            LocalStore.setStore(userName, data)
-                            navigation.navigate('Home');
-                        }
-                        else if (success === 0 && error) {
-                            Toast.show(error, { position: Toast.positions.CENTER });
-                        }
+
+            HttpService.Post('api/auth/login', obj).then(res => {
+                if (res) {
+                    const { success, data, error } = res;
+                    if (success === 1 && data) {
+
+                        setInfoLogin({
+                            userName: null,
+                            passWord: null
+                        });
+
+                        storeData({ storeKey: Constants.AUTH_STORAGE, value: { userName: userName, token: data } });
+                        LocalStore.setStore(userName, data)
+                        navigation.navigate('Home');
                     }
-                    else {
-                        Toast.show('Tài khoản và mật khẩu không được để trống', { position: Toast.positions.CENTER });
+                    else if (success === 0 && error) {
+                        Toast.show(error, { position: Toast.positions.CENTER });
                     }
-                })
-                .catch((error) => console.error(error))
-            // .finally(() => setLoading(false));
+                }
+                else {
+                    Toast.show('Tài khoản và mật khẩu không được để trống', { position: Toast.positions.CENTER });
+                }
+            })
         }
 
 

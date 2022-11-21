@@ -1,22 +1,31 @@
-import * as React from 'react';
+import { useEffect, useState } from 'react';
 import {
     View, Text, Image,
     TouchableOpacity, StyleSheet,
     ScrollView
 } from 'react-native';
-import bgLogin from '../assets/bgLogin.png';
+import Modal from 'react-native-modal';
 import avatarDefault from '../assets/default.8a7fd05f.png';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, SvgUri } from 'react-native-svg';
 import { Size } from '../utilities/Styles';
+import { baseURL } from '../services/HttpService';
+import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 
 export default function HistoryMessageScreen({ navigation, route }) {
     const { params } = route;
     const { itemGroup } = params;
-    const { infoGroup } = itemGroup;
-    console.log(infoGroup, '----');
+    const { infoGroup, lastMedia } = itemGroup;
+    const [viewImage, setViewImage] = useState({ isShow: false, uri: null, fileType: null });
+
+    useEffect(() => {
+        lastMedia.sort((a, b) => {
+            return parseInt(b.createdAt) - parseInt(a.createdAt);
+        });
+    }, [])
 
     return (<View style={styles.container}>
-
+        <StatusBar hidden={viewImage.isShow} />
         <View style={{
             flexDirection: 'row',
         }}>
@@ -55,21 +64,74 @@ export default function HistoryMessageScreen({ navigation, route }) {
                 alignItems: 'center'
             }}>
                 <Text style={{ fontSize: Size.text }}>Đã chia sẻ</Text>
-                <TouchableOpacity style={{ color: '#4a6fc4' }} onPress={() => navigation.navigate('FileShared', { itemGroup: { ...itemGroup } })}>
+                <TouchableOpacity style={{ color: '#4a6fc4' }}
+                    onPress={() => navigation.navigate('FileShared', { itemGroup: { ...itemGroup }, lastMedia })}>
                     <Text style={{ color: '#4a6fc4', textDecorationLine: 'underline', fontSize: Size.text }}>Xem tất cả</Text>
                 </TouchableOpacity>
             </View>
 
             <ScrollView>
-                <View style={styles.historyItem}>
-                    <Image source={bgLogin} style={styles.historyItemImg} resizeMode={'contain'} />
-                </View>
+                {lastMedia.map(item => {
+                    const { fileType, path, _id } = item;
+                    const toUrl = baseURL + path;
 
-                <View style={styles.historyItem}>
-                    <Image source={avatarDefault} style={styles.historyItemImg} resizeMode={'contain'} />
-                </View>
+                    if (fileType === 'image/png' || fileType === 'image/jpeg') {
+                        return (<TouchableOpacity style={styles.historyItem} key={_id}
+                            onPress={() => setViewImage({ isShow: true, uri: toUrl, fileType })}>
+                            <Image source={{ uri: toUrl }} style={styles.historyItemImg} resizeMode={'contain'} />
+                        </TouchableOpacity>)
+                    }
+                    else if (fileType === 'image/svg+xml') {
+                        return (<TouchableOpacity onPress={() => setViewImage({ isShow: true, uri: toUrl, fileType })}
+                            style={styles.historyItem} key={_id}>
+                            <SvgUri
+                                width={'100%'}
+                                height={120}
+                                uri={toUrl}
+                            />
+                        </TouchableOpacity>)
+                    }
+                })}
             </ScrollView>
         </View>
+
+        <Modal
+            isVisible={viewImage.isShow}
+            backdropColor={'#000'}
+            backdropOpacity={.8}
+            animationIn={'zoomInDown'}
+            animationOut={'zoomOutUp'}
+        >
+            <View style={{
+                borderRadius: 4,
+                padding: 12,
+                flex: 1
+            }}>
+                <TouchableOpacity onPress={() => setViewImage({ isShow: false, uri: null, fileType: null })}>
+                    <Ionicons name="close-circle-outline" size={Size.iconSize + 4} color="#fff" />
+                </TouchableOpacity>
+
+                {(viewImage.fileType == 'image/png' || viewImage.fileType === 'image/jpeg')
+                    && <Image source={{ uri: viewImage.uri }} style={{
+                        width: '100%',
+                        height: '100%',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 6
+                    }} resizeMode={'contain'} />}
+
+                {viewImage.fileType === 'image/svg+xml' && <SvgUri
+                    width={'100%'}
+                    height={'100%'}
+                    style={{
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 6
+                    }}
+                    uri={viewImage.uri}
+                />}
+            </View>
+        </Modal>
     </View>)
 }
 

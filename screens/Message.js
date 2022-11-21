@@ -13,13 +13,16 @@ import moment from "moment";
 import SocketIOService from '../services/SocketIOService';
 import Modal from 'react-native-modal';
 import Toast from 'react-native-root-toast';
+import HttpService from '../services/HttpService';
+import { baseURL } from '../services/HttpService';
 
-function MessageFilter({ setShowFilter, navigation, data }) {
+function MessageFilter({ setShowFilter, navigation, myGroups, me }) {
     const refInputFilter = useRef();
     const [inputFilter, setInputFilter] = useState({ value: null, isFocus: true });
     const [showFriend, setShowFriend] = useState(true);
     const [showGroup, setShowGroup] = useState(true);
     const [dataFilter, setDataFilter] = useState({ friend: [], group: [] });
+    const [notFound, setNotFound] = useState(false);
 
     const toggleOpenShowFriend = () => {
         setShowFriend(!showFriend);
@@ -32,11 +35,77 @@ function MessageFilter({ setShowFilter, navigation, data }) {
     };
 
     const handleFilter = () => {
-        if (inputFilter.value && inputFilter.value !== '') {
-            const { myGroups } = data;
+        const _value = inputFilter.value?.toLowerCase();
+
+        if (_value && _value !== '') {
+            HttpService.Get('api/friend/lists')
+                .then(res => {
+                    if (res) {
+                        const { data, success } = res;
+
+                        if (success == 1) {
+                            const { items } = data;
+                            const filterFriends = items.filter(item => item.fullname && item.fullname.toLowerCase().includes(_value) || item.username && item.username.toLowerCase().includes(_value));
+                            const filterGroups = myGroups.filter(item => item.name && item.name.toLowerCase().includes(_value) || item.groupPrefix && item.groupPrefix.toLowerCase().includes(_value));
+
+                            if (filterFriends.length == 0 && filterGroups.length == 0) {
+                                setNotFound(true)
+                            }
+                            else {
+                                setNotFound(false)
+
+                                setDataFilter({
+                                    group: [...filterGroups],
+                                    friend: [...filterFriends]
+                                })
+                            }
+                        }
+                        else {
+                            const filterGroups = myGroups.filter(item => item.name && item.name.toLowerCase().includes(_value) || item.groupPrefix && item.groupPrefix.toLowerCase().includes(_value));
+
+                            if (filterGroups.length == 0) {
+                                setNotFound(true)
+                            }
+                            else {
+                                setNotFound(false)
+
+                                setDataFilter({
+                                    ...dataFilter,
+                                    group: [...filterGroups]
+                                })
+                            }
+                        }
+                    }
+                })
         }
         else {
             setDataFilter({ friend: [], group: [] });
+        }
+    }
+
+    const handleNavFriendToDialog = item => {
+        if (item) {
+            const { userId, itemGroup } = item;
+            HttpService.Get('api/group/room/' + userId + '?isParallel=1')
+                .then(res => {
+                    if (res) {
+                        const { success, error, data } = res;
+
+                        if (success == 1) {
+                            const { _id } = data;
+
+                            navigation.navigate('Dialog', {
+                                itemGroup: {
+                                    ...itemGroup,
+                                    to: _id
+                                }
+                            })
+                        }
+                        else if (error) {
+                            Toast.show(error, { position: Toast.positions.CENTER });
+                        }
+                    }
+                })
         }
     }
 
@@ -70,84 +139,70 @@ function MessageFilter({ setShowFilter, navigation, data }) {
             </View>
         </View>
 
+        {notFound && (<View style={styles.friendInvitationContent}>
+            <Svg width="16" height="16" data-v-0122e182="" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="info-circle" role="img" xmlns="http://www.w3.org/2000/Svg" viewBox="0 0 512 512" class="w-4 h-4 mr-2 fill-current"><Path data-v-0122e182="" fill="currentColor" d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></Path></Svg>
+            <Text style={{ marginLeft: 5, color: 'rgb(29, 78, 216)', fontSize: Size.text }}> Không tìm thấy</Text>
+        </View>)}
+
         <ScrollView>
-            <TouchableOpacity style={styles.messageFilterGroup} activeOpacity={.7} onPress={toggleOpenShowFriend}>
+            {dataFilter.friend.length > 0 && (<View><TouchableOpacity style={styles.messageFilterGroup} activeOpacity={.7} onPress={toggleOpenShowFriend}>
                 <Text style={styles.messageFilterGroupName}>Bạn bè</Text>
                 <View style={showFriend && styles.rotateIcon}>
                     <Svg data-v-f6fa0f44="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><Path data-v-f6fa0f44="" d="M19.9201 8.94995L13.4001 15.47C12.6301 16.24 11.3701 16.24 10.6001 15.47L4.08008 8.94995" stroke="#292D32" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></Path></Svg>
                 </View>
             </TouchableOpacity>
 
-            {showFriend && (<View>
-                <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                    <View>
-                        <Image source={avatarDefault} style={styles.messageFilterImg} />
-                        <View style={[styles.iconDot, styles.iconDotOnline]}></View>
-                    </View>
+                {showFriend && (<View>
+                    {dataFilter.friend.map(item => {
+                        return (<TouchableOpacity style={styles.friendMessage} activeOpacity={.7} key={item._id}
+                            onPress={() => handleNavFriendToDialog({
+                                userId: item._id,
+                                itemGroup: {
+                                    ...item,
+                                    infoGroupItemName: item.fullname || item.username,
+                                    avatar: item.avatar ? baseURL + item.avatar : null,
+                                    me: { ...me }
+                                }
+                            })}>
+                            <View>
+                                <Image source={avatarDefault} style={styles.messageFilterImg} />
+                                <View style={[styles.iconDot, styles.iconDotOnline]}></View>
+                            </View>
 
-                    <Text style={styles.messageFilterNickname}>ss</Text>
-                </TouchableOpacity>
-            </View>)}
+                            <Text style={styles.messageFilterNickname}>{item.fullname || item.username}</Text>
+                        </TouchableOpacity>)
+                    })}
+                </View>)}</View>)}
 
-            <TouchableOpacity style={styles.messageFilterGroup} activeOpacity={.7} onPress={toggleOpenShowGroup}>
+            {dataFilter.group.length > 0 && (<View><TouchableOpacity style={styles.messageFilterGroup} activeOpacity={.7} onPress={toggleOpenShowGroup}>
                 <Text style={styles.messageFilterGroupName}>Nhóm</Text>
                 <View style={showGroup && styles.rotateIcon}>
                     <Svg data-v-f6fa0f44="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><Path data-v-f6fa0f44="" d="M19.9201 8.94995L13.4001 15.47C12.6301 16.24 11.3701 16.24 10.6001 15.47L4.08008 8.94995" stroke="#292D32" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></Path></Svg>
                 </View>
             </TouchableOpacity>
 
-            {showGroup && (<View>
-                <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                    <View>
-                        <Image source={avatarDefault} style={styles.messageFilterImg} />
-                    </View>
-                    <View style={styles.friendMessageGroupInfo}>
-                        <Text style={styles.messageFilterNickname}>ss</Text>
-                        <Text style={styles.nicknameGroup}>@ss</Text>
-                    </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                    <View>
-                        <Image source={avatarDefault} style={styles.messageFilterImg} />
-                    </View>
-                    <View style={styles.friendMessageGroupInfo}>
-                        <Text style={styles.messageFilterNickname}>ss</Text>
-                        <Text style={styles.nicknameGroup}>@ss</Text>
-                    </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                    <View>
-                        <Image source={avatarDefault} style={styles.messageFilterImg} />
-                    </View>
-                    <View style={styles.friendMessageGroupInfo}>
-                        <Text style={styles.messageFilterNickname}>ss</Text>
-                        <Text style={styles.nicknameGroup}>@ss</Text>
-                    </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                    <View>
-                        <Image source={avatarDefault} style={styles.messageFilterImg} />
-                    </View>
-                    <View style={styles.friendMessageGroupInfo}>
-                        <Text style={styles.messageFilterNickname}>ss</Text>
-                        <Text style={styles.nicknameGroup}>@ss</Text>
-                    </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                    <View>
-                        <Image source={avatarDefault} style={styles.messageFilterImg} />
-                    </View>
-                    <View style={styles.friendMessageGroupInfo}>
-                        <Text style={styles.messageFilterNickname}>ss</Text>
-                        <Text style={styles.nicknameGroup}>@ss</Text>
-                    </View>
-                </TouchableOpacity>
-            </View>)}
-
+                {showGroup && (<View>
+                    {dataFilter.group.map(item => {
+                        return (<TouchableOpacity style={styles.friendMessage} activeOpacity={.7} key={item._id}
+                            onPress={() => navigation.navigate('Dialog', {
+                                itemGroup: {
+                                    ...item,
+                                    to: item._id,
+                                    infoGroupItemName: item.name,
+                                    avatar: null,
+                                    me: { ...me }
+                                }
+                            })}>
+                            <View>
+                                <Image source={avatarDefault} style={styles.messageFilterImg} />
+                            </View>
+                            <View style={styles.friendMessageGroupInfo}>
+                                <Text style={styles.messageFilterNickname}>{item.name}</Text>
+                                <Text style={styles.nicknameGroup}>{'@' + item.groupPrefix.toLowerCase()}</Text>
+                            </View>
+                        </TouchableOpacity>)
+                    })}
+                </View>)}</View>)}
         </ScrollView>
     </View >)
 }
@@ -257,6 +312,11 @@ export default function MessageScreen({ navigation }) {
         return <View style={{ height: Size.deviceheight - 235 }}>
             <ScrollView>
                 {mergeGroupToMessage.map(item => {
+
+                    if (item.groupid) {
+                        item = { ...item, to: item._id };
+                    }
+
                     const infoGroupItem = infoGroup[item.to] || { ...item, isParallel: 0, to: item._id },
                         messageLastFrom = fromUsersList[item.from];
 
@@ -386,7 +446,10 @@ export default function MessageScreen({ navigation }) {
 
     return (<View style={styles.container}>
         <TouchableWithoutFeedback onPress={() => setShowBtnCreateGroup(false)}>
-            {showFilter ? <MessageFilter setShowFilter={toggleShowFilter} navigation={navigation} data={refUserInfo.current} /> :
+            {showFilter ? <MessageFilter setShowFilter={toggleShowFilter}
+                navigation={navigation}
+                myGroups={userInfo ? userInfo.myGroups : []}
+                me={userInfo ? userInfo.me : {}} /> :
                 (<View>
                     <View style={{ flexDirection: 'row', paddingVertical: 15 }}>
                         {userInfo && userInfo.me.avatar ? <Image source={{ uri: userInfo.me.avatar }} style={{ width: 48, height: 48, borderRadius: 48 }} />
@@ -631,6 +694,13 @@ export default function MessageScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+    friendInvitationContent: {
+        borderTopColor: '#ececf0',
+        borderTopWidth: 1,
+        flexDirection: 'row',
+        padding: 10,
+        alignItems: 'center'
+    },
     colorPlaceHolder: {
         color: '#767676'
     },
@@ -682,8 +752,6 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         color: 'rgb(17, 24, 39)'
     },
-
-
     rotateIcon: {
         transform: [{ translateX: 0 }, { translateY: 0 }, { rotate: '180deg' },
         { skewX: '0deg' }, { skewY: '0deg' }, { scaleY: 1 }, { scaleX: 1 }]
