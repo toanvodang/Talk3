@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
     KeyboardAvoidingView, View, Text, Image,
     TextInput, TouchableOpacity, StyleSheet,
-    Platform,
+    Platform, ActivityIndicator,
     TouchableWithoutFeedback,
     Keyboard,
 } from 'react-native';
@@ -23,12 +23,12 @@ export default function LoginScreen({ navigation }) {
         passWord: null
     })
 
-    useEffect(() => {
-        (async () => {
-            const getStore = await getData(Constants.AUTH_STORAGE);
-        })()
+    // useEffect(() => {
+    //     (async () => {
+    //         const getStore = await getData(Constants.AUTH_STORAGE);
+    //     })()
 
-    }, [])
+    // }, [])
 
     const refPass = useRef()
 
@@ -105,6 +105,7 @@ export default function LoginScreen({ navigation }) {
         extraScrollHeight={150}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={container}>
+        {/* <ActivityIndicator /> */}
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={inner}>
                 <View style={topLogin}>

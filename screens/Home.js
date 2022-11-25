@@ -20,7 +20,7 @@ export default function HomeScreen({ navigation }) {
     const [screen, setScreen] = useState(objScreen.Message);
     const localStore = LocalStore.getStore();
     useEffect(() => {
-        console.log(localStore);
+        // console.log(localStore);
         () => {
             console.log('Home unmount');
         }

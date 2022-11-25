@@ -37,17 +37,18 @@ export default function DialogScreen({ navigation, route }) {
     const localStore = LocalStore.getStore();
     const socket = SocketIOService(localStore);
     const refPreloadData = useRef();
+    const [isBlockedFriend, setIsBlockedFriend] = useState(false)
 
     const _preloadMessage = (payload) => {
         payload._groupID = itemGroup.to;
-
+        // console.log(itemGroup, 'itemGroup');
         const { offset, size, _groupID } = payload;
 
         socket.emit('preload', { offset, size, _groupID }, res => {
             const { data, success, error } = res;
 
             if (success == 1) {
-                console.log(data.friendsBlock, 'data');
+                // console.log(data.friendsBlock, 'data');
                 if (refPreloadData.current) {
                     if (data.messages.length > 0) {
                         const { fromUsersList, media, lastMedia } = refPreloadData.current;
@@ -102,6 +103,18 @@ export default function DialogScreen({ navigation, route }) {
                 else {
                     refPreloadData.current = { ...data };
                     setPreloadData({ ...refPreloadData.current });
+                }
+
+                if (itemGroup.friendsBlock && itemGroup.isParallel == 1) {
+                    const { fromUsersList } = data;
+                    const findItemLocked = itemGroup.friendsBlock.find(item => fromUsersList[item]);
+
+                    if (findItemLocked) {
+                        setIsBlockedFriend(true);
+                    }
+                    else {
+                        setIsBlockedFriend(false);
+                    }
                 }
             }
             else if (success == 0 && error) {
@@ -533,9 +546,10 @@ export default function DialogScreen({ navigation, route }) {
                     </View>
                     <TextInput
                         onChangeText={message => setMessage(message)}
-                        value={message}
+                        value={isBlockedFriend.toString()}
                         returnKeyType={'go'}
                         placeholder='Nhập tin nhắn'
+                        disabled={true}
                         style={{
                             height: 40,
                             color: 'rgb(17, 24, 39)',

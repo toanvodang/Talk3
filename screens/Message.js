@@ -296,7 +296,7 @@ export default function MessageScreen({ navigation }) {
     };
 
     const renderLastMessage = () => {
-        const { lastMessages, friendsOnline, me, myGroups } = userInfo,
+        const { lastMessages, friendsOnline, me, myGroups, friendsBlock } = userInfo,
             { messages, infoGroup, fromUsersList } = lastMessages;
 
         const filterGroupNotInMessage = myGroups.filter(item => {
@@ -372,7 +372,7 @@ export default function MessageScreen({ navigation }) {
 
                     if (infoGroupItem) {
                         return (<TouchableOpacity style={styles.friendMessage} activeOpacity={.7} key={item.to}
-                            onPress={() => navigation.navigate('Dialog', { itemGroup: { ...item, infoGroupItemName, avatar, me: { ...me } } })}>
+                            onPress={() => navigation.navigate('Dialog', { itemGroup: { ...item, isParallel: infoGroupItem.isParallel, friendsBlock, infoGroupItemName, avatar, me: { ...me } } })}>
                             <View>
                                 {avatar ? <Image source={{ uri: avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} />
                                     : <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />}
