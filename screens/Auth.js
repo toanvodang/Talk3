@@ -12,7 +12,6 @@ export default function AuthScreen({ navigation }) {
             const getStore = await getData(Constants.AUTH_STORAGE);
 
             if (getStore) {
-
                 LocalStore.setStore(getStore.userName, getStore.token)
 
                 navigation.navigate('Home');

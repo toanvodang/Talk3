@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    KeyboardAvoidingView, View,
+    KeyboardAvoidingView, View, Text,
     TouchableOpacity, StyleSheet,
     Platform, SafeAreaView, LayoutAnimation
 } from 'react-native';
@@ -13,18 +13,34 @@ import SettingScreen from './Setting';
 import FriendScreen from './Friend';
 import Constants from '../utilities/Constants';
 import { storeData, LocalStore } from '../services/LocalStorageService';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function HomeScreen({ navigation }) {
     const objScreen = { Message: 'Message', Friend: 'Friend', Setting: 'Setting' }
-
     const [screen, setScreen] = useState(objScreen.Message);
-    const localStore = LocalStore.getStore();
+    const [receiveFriend, setReceiveFriend] = useState([]);
+    const isFocused = useIsFocused();
+
     useEffect(() => {
-        // console.log(localStore);
-        () => {
-            console.log('Home unmount');
+        //navigation.addListener("didFocus", receiveFriend);
+        // console.log(isFocused);
+        if (isFocused) {
+            HttpService.Get('api/friend/receive/')
+                .then(res => {
+                    if (res) {
+                        const { success, data, error } = res
+
+                        if (success === 1 && data && data.items) {
+                            const { items } = data;
+                            setReceiveFriend([...items]);
+                        }
+                        else if (success === 0 && error) {
+                            //Toast.show(error, { position: Toast.positions.CENTER });
+                        }
+                    }
+                })
         }
-    }, [localStore.token])
+    }, [isFocused])
 
     const handleSetScreen = (item) => {
         setScreen(item)
@@ -35,8 +51,8 @@ export default function HomeScreen({ navigation }) {
         storeData({ storeKey: Constants.AUTH_STORAGE, value: null });
         LocalStore.setStore(null, null);
         navigation.navigate('Login');
-
     }
+
     const sizeIcon = Size.iconSize + 6;
     return (<SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
@@ -47,7 +63,14 @@ export default function HomeScreen({ navigation }) {
                     <TouchableOpacity activeOpacity={.8} style={[styles.leftButtonItem, screen == objScreen.Message && styles.leftButtonItemActive]} onPress={() => handleSetScreen(objScreen.Message)}>
                         <MaterialCommunityIcons name="chat-processing" size={sizeIcon + 1} color={screen == objScreen.Message ? '#2854f6' : '#A8AAAF'} />
                     </TouchableOpacity>
-                    <TouchableOpacity activeOpacity={.8} style={[styles.leftButtonItem, screen == objScreen.Friend && styles.leftButtonItemActive]} onPress={() => handleSetScreen(objScreen.Friend)}>
+                    <TouchableOpacity activeOpacity={.8} style={[styles.leftButtonItem,
+                    screen == objScreen.Friend && styles.leftButtonItemActive]}
+                        onPress={() => handleSetScreen(objScreen.Friend)}>
+                        {receiveFriend.length > 0 && <View style={{
+                            backgroundColor: 'rgb(220, 38, 38)', color: '#fff', fontSize: Size.text,
+                            width: 20, height: 20, borderRadius: 20, borderColor: 'transparent', borderWidth: 1,
+                            position: 'absolute', top: 10, right: 10, alignItems: 'center', justifyContent: 'center'
+                        }}><Text style={{ color: '#fff', fontSize: Size.text }}>{receiveFriend.length}</Text></View>}
                         <MaterialIcons name="people" size={sizeIcon} color={screen == objScreen.Friend ? '#2854f6' : '#A8AAAF'} />
                     </TouchableOpacity>
                     <TouchableOpacity activeOpacity={.8} style={[styles.leftButtonItem, screen == objScreen.Setting && styles.leftButtonItemActive]} onPress={() => handleSetScreen(objScreen.Setting)}>
@@ -61,7 +84,7 @@ export default function HomeScreen({ navigation }) {
 
                 <View style={styles.rightView}>
                     {screen == objScreen.Message ? <MessageScreen navigation={navigation} /> : screen == objScreen.Friend
-                        ? <FriendScreen navigation={navigation} /> : <SettingScreen navigation={navigation} />}
+                        ? <FriendScreen navigation={navigation} receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} /> : <SettingScreen navigation={navigation} />}
                 </View>
             </View>
         </KeyboardAvoidingView></SafeAreaView>)

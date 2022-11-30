@@ -11,17 +11,92 @@ import avatarDefault from '../assets/default.8a7fd05f.png';
 import Toast from 'react-native-root-toast';
 // import Constants from '../utilities/Constants';
 import { LocalStore } from '../services/LocalStorageService';
+import SocketIOService from '../services/SocketIOService';
+import HttpService, { baseURL } from '../services/HttpService';
 
-function FriendInvitation({ friendItem, goBack, profile }) {
+function FriendInvitation({ friendItem, goBack, profile, receiveFriend, socket, setReceiveFriend }) {
+
+    const [receiveData, setReceiveData] = useState([...receiveFriend]);
+    const currDate = new Date();
+
+    const handleAcceptOrReject = (obj, _id) => {
+        socket.emit('reply_friend', obj, res => {
+            const { data, success, error } = res;
+
+            if (success == 1) {
+                Toast.show(data, { position: Toast.positions.CENTER });
+
+                const filterFriend = receiveData.filter(item => item._id !== _id);
+                setReceiveData([...filterFriend]);
+                setReceiveFriend([...filterFriend]);
+            }
+            else if (error) {
+                Toast.show(error, { position: Toast.positions.CENTER });
+            }
+        })
+    }
+
     return (<View style={styles.friendView}>
         <TouchableOpacity style={styles.friendHeader} activeOpacity={.7} onPress={() => goBack && goBack()}>
             <Svg data-v-0122e182="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/Svg"><Path data-v-0122e182="" d="M15 19.9201L8.47997 13.4001C7.70997 12.6301 7.70997 11.3701 8.47997 10.6001L15 4.08008" stroke="#292D32" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></Path></Svg>
             <Text style={[styles.label, { marginLeft: 0 }]}>{friendItem.label}</Text>
         </TouchableOpacity>
+
         <View style={styles.friendInvitationContent}>
             <Svg width="16" height="16" data-v-0122e182="" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="info-circle" role="img" xmlns="http://www.w3.org/2000/Svg" viewBox="0 0 512 512" class="w-4 h-4 mr-2 fill-current"><Path data-v-0122e182="" fill="currentColor" d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></Path></Svg>
-            <Text style={[styles.label, { marginLeft: 5, color: 'rgb(29, 78, 216)' }]}>0 {friendItem.label.toLowerCase()}</Text>
+            <Text style={[styles.label, { marginLeft: 5, color: 'rgb(29, 78, 216)' }]}>{receiveData.length + ' ' + friendItem.label.toLowerCase()}</Text>
         </View>
+
+        {receiveData.length > 0 && (
+            receiveData.map(itemReceive => {
+                const item = itemReceive['A'];
+                let betweenTimeText = '';
+
+                if (itemReceive.createdAt) {
+                    let betweenTime = (currDate - new Date(itemReceive.createdAt)) / 1000;
+
+                    if (betweenTime < 60) {
+                        betweenTimeText = 'a few seconds ago';
+                    }
+                    else if (betweenTime / 60 < 1) {
+                        betweenTimeText = 'a minute ago';
+                    }
+                    else if (betweenTime / 60 < 60) {
+                        let round = Math.round(betweenTime / 60);
+                        betweenTimeText = round + ' minutes ago';
+                    }
+                    else if (betweenTime / 3600 < 24) {
+                        let round = Math.round(betweenTime / 3600);
+                        betweenTimeText = round + ' hours ago';
+                    }
+                    else if (betweenTime / (24 * 3600) >= 1) {
+                        let round = Math.round(betweenTime / (24 * 3600));
+                        betweenTimeText = round + ' days ago';
+                    }
+                }
+
+                return (<View style={styles.receiveFriend} key={item._id}>
+                    {item.avatar ? <Image source={{ uri: baseURL + item.avatar }} style={{ width: 48, height: 48, borderRadius: 48 }} />
+                        : <Image source={avatarDefault} style={{ width: 48, height: 48 }} />}
+                    <View style={styles.receiveFriendInfo}>
+                        <View style={styles.receiveFriendInfoTop}>
+                            <Text style={styles.receiveFriendInfoTopName}>{item.fullname || item.username}</Text>
+                            <Text style={styles.receiveFriendInfoTopTime}>{betweenTimeText}</Text>
+                        </View>
+                        <View style={styles.receiveFriendBot}>
+                            <TouchableOpacity style={styles.receiveFriendInfoBotAccept}
+                                onPress={() => handleAcceptOrReject({ _idFriend: item._id, status: 1 }, itemReceive._id)}>
+                                <Text style={styles.receiveFriendInfoBotAcceptText}>Chấp nhận</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.receiveFriendInfoReject}
+                                onPress={() => handleAcceptOrReject({ _idFriend: item._id, status: 0 }, itemReceive._id)}>
+                                <Text style={styles.receiveFriendInfoRejectText}>Từ chối</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>)
+            })
+        )}
     </View>)
 }
 
@@ -30,20 +105,11 @@ function FriendList({ friendItem, goBack, navigation, profile }) {
     const [data, setData] = useState([])
 
     useEffect(() => {
-        const { token } = profile;
 
-        fetch('https://chat.cybercode88.com/api/friend/lists', {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            }
-        }).then(res => res.json())
+        HttpService.Get('api/friend/lists/')
             .then(res => {
                 if (res) {
                     const { success, data, error } = res
-                    // console.log(data);
 
                     if (success === 1 && data && data.items) {
                         setData([...data.items])
@@ -52,12 +118,7 @@ function FriendList({ friendItem, goBack, navigation, profile }) {
                         Toast.show(error, { position: Toast.positions.CENTER });
                     }
                 }
-                else {
-
-                }
             })
-            .catch((error) => console.error(error))
-
     }, [])
 
     const handleFilter = () => {
@@ -123,16 +184,7 @@ function FriendRequest({ friendItem, goBack, profile }) {
     const [data, setData] = useState([])
 
     useEffect(() => {
-        const { token } = profile;
-
-        fetch('https://chat.cybercode88.com/api/friend/request/', {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            }
-        }).then(res => res.json())
+        HttpService.Get('api/friend/request/')
             .then(res => {
                 if (res) {
                     const { success, data, error } = res
@@ -144,12 +196,7 @@ function FriendRequest({ friendItem, goBack, profile }) {
                         Toast.show(error, { position: Toast.positions.CENTER });
                     }
                 }
-                else {
-
-                }
             })
-            .catch((error) => console.error(error))
-
     }, [])
 
     const handleFilter = () => {
@@ -216,7 +263,7 @@ function FriendRequest({ friendItem, goBack, profile }) {
     </View>)
 }
 
-function FriendFilter({ friendItem, goBack, profile }) {
+function FriendFilter({ friendItem, goBack, profile, socket }) {
     const [inputSearch, setInputSearch] = useState({ value: null, isFocus: false })
     const [data, setData] = useState([])
 
@@ -224,16 +271,9 @@ function FriendFilter({ friendItem, goBack, profile }) {
 
         Keyboard.dismiss();
 
-        const { token } = profile;
+        if (!inputSearch.value || inputSearch.value === '') return;
 
-        fetch('https://chat.cybercode88.com/api/friend/search/' + inputSearch.value, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            }
-        }).then(res => res.json())
+        HttpService.Get('api/friend/search/' + inputSearch.value)
             .then(res => {
                 if (res) {
                     const { success, data, error } = res
@@ -245,18 +285,20 @@ function FriendFilter({ friendItem, goBack, profile }) {
                         Toast.show(error, { position: Toast.positions.CENTER });
                     }
                 }
-                else {
-
-                }
-                // console.log(res, 'FriendFilter');
-
             })
-            .catch((error) => console.error(error))
-        // .finally(() => setLoading(false));
     }
 
-    const handleMakeFriend = (username) => {
-        Toast.show('Đã gửi lời mời kết bạn đến ' + username, { position: Toast.positions.CENTER });
+    const handleMakeFriend = (item) => {
+        socket.emit('add_friend', { _idFriend: item._id }, res => {
+            const { data, success, error } = res;
+
+            if (success == 1) {
+                Toast.show(data, { position: Toast.positions.CENTER });
+            }
+            else if (error) {
+                Toast.show(error, { position: Toast.positions.CENTER });
+            }
+        })
     }
 
     return (<View style={styles.friendView}>
@@ -297,7 +339,7 @@ function FriendFilter({ friendItem, goBack, profile }) {
                             <Image source={avatarDefault} style={{ width: 48, height: 48 }} />
                             <View style={styles.friendFilterResultItemInfo}>
                                 <Text style={styles.infoName}>{item.username}</Text>
-                                <TouchableOpacity onPress={() => handleMakeFriend(item.username)}
+                                <TouchableOpacity onPress={() => handleMakeFriend(item)}
                                     style={styles.btnMakeFriend}>
                                     <Text style={styles.txtMakeFriend}>Kết bạn</Text>
                                 </TouchableOpacity>
@@ -312,9 +354,10 @@ function FriendFilter({ friendItem, goBack, profile }) {
     </View>)
 }
 
-export default function FriendScreen({ navigation }) {
+export default function FriendScreen({ navigation, receiveFriend, setReceiveFriend }) {
     const profile = LocalStore.getStore();
-    // console.log(LocalStore, 'ff');
+
+    const socket = SocketIOService(profile);
 
     const toggleOpenShowFriend = (item) => {
         setFriendItem(item)
@@ -370,13 +413,14 @@ export default function FriendScreen({ navigation }) {
     const renderView = () => {
         switch (friendItem.name) {
             case objFriend.friendInvitation:
-                return <FriendInvitation friendItem={friendItem} goBack={setFriendItem} profile={profile} />;
+                return <FriendInvitation friendItem={friendItem} goBack={setFriendItem} profile={profile}
+                    socket={socket} receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} />;
             case objFriend.friendList:
-                return <FriendList friendItem={friendItem} goBack={setFriendItem} navigation={navigation} profile={profile} />;
+                return <FriendList friendItem={friendItem} goBack={setFriendItem} navigation={navigation} profile={profile} socket={socket} />;
             case objFriend.friendRequest:
-                return <FriendRequest friendItem={friendItem} goBack={setFriendItem} profile={profile} />;
+                return <FriendRequest friendItem={friendItem} goBack={setFriendItem} profile={profile} socket={socket} />;
             case objFriend.friendFilter:
-                return <FriendFilter friendItem={friendItem} goBack={setFriendItem} profile={profile} />;
+                return <FriendFilter friendItem={friendItem} goBack={setFriendItem} profile={profile} socket={socket} />;
             default:
                 return null;
         }
@@ -399,6 +443,57 @@ export default function FriendScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+    receiveFriend: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15
+    },
+    receiveFriendInfo: {
+        flex: 1,
+        marginLeft: 10,
+        flexDirection: 'corowlumn'
+    },
+    receiveFriendInfoTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4
+    },
+    receiveFriendInfoTopName: {
+        color: 'rgb(17, 24, 39)',
+        fontWeight: '500',
+        fontSize: Size.text
+    },
+    receiveFriendInfoTopTime: {
+        color: 'rgb(175, 175, 175)',
+        fontSize: Size.text
+    },
+    receiveFriendBot: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+
+    },
+    receiveFriendInfoBotAccept: {
+        backgroundColor: 'rgb(40, 84, 246)',
+        paddingVertical: 12,
+        paddingHorizontal: 11,
+        borderRadius: 6
+    },
+    receiveFriendInfoBotAcceptText: {
+        fontWeight: '500',
+        fontSize: Size.text,
+        color: '#fff'
+    },
+    receiveFriendInfoReject: {
+        backgroundColor: 'rgb(209, 213, 219)',
+        paddingVertical: 12,
+        borderRadius: 6,
+        paddingHorizontal: 11
+    },
+    receiveFriendInfoRejectText: {
+        fontWeight: '500',
+        fontSize: Size.text
+    },
     container: {
         flex: 1,
         maxWidth: 420,
@@ -490,7 +585,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 17,
         borderRadius: 7,
-        width: 100
+        // width: 100
     },
     txtMakeFriend: {
         fontWeight: '500',
@@ -510,6 +605,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         flexDirection: 'row',
         padding: 10,
-        alignItems: 'center'
+        alignItems: 'center',
+        marginBottom: 12
     }
 })

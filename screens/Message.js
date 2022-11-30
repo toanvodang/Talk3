@@ -288,7 +288,7 @@ export default function MessageScreen({ navigation }) {
             socket.off('message', handleMessage)
             socket.disconnect();
         };
-    }, [])
+    }, [localStore.token])
 
     const toggleShowFilter = () => {
         setShowFilter(!showFilter)
