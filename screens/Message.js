@@ -46,8 +46,10 @@ function MessageFilter({ setShowFilter, navigation, userInfo }) {
 
                         if (success == 1) {
                             const { items } = data;
-                            const filterFriends = items.filter(item => item.fullname && item.fullname.toLowerCase().includes(_value) || item.username && item.username.toLowerCase().includes(_value));
-                            const filterGroups = myGroups.filter(item => item.name && item.name.toLowerCase().includes(_value) || item.groupPrefix && item.groupPrefix.toLowerCase().includes(_value));
+                            const filterFriends = items.filter(item => item.fullname && item.fullname.toLowerCase().includes(_value)
+                                || item.username && item.username.toLowerCase().includes(_value));
+                            const filterGroups = myGroups.filter(item => item.name && item.name.toLowerCase().includes(_value)
+                                || item.groupPrefix && item.groupPrefix.toLowerCase().includes(_value));
 
                             if (filterFriends.length == 0 && filterGroups.length == 0) {
                                 setNotFound(true)
@@ -62,7 +64,8 @@ function MessageFilter({ setShowFilter, navigation, userInfo }) {
                             }
                         }
                         else {
-                            const filterGroups = myGroups.filter(item => item.name && item.name.toLowerCase().includes(_value) || item.groupPrefix && item.groupPrefix.toLowerCase().includes(_value));
+                            const filterGroups = myGroups.filter(item => item.name && item.name.toLowerCase().includes(_value)
+                                || item.groupPrefix && item.groupPrefix.toLowerCase().includes(_value));
 
                             if (filterGroups.length == 0) {
                                 setNotFound(true)
@@ -305,6 +308,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     };
 
     const renderLastMessage = () => {
+        console.log(userInfo, 'userInfo mess');
         const { lastMessages, friendsOnline, me, myGroups } = userInfo,
             { messages, infoGroup, fromUsersList } = lastMessages;
 

@@ -100,7 +100,7 @@ function FriendInvitation({ friendItem, goBack, profile, receiveFriend, socket, 
     </View>)
 }
 
-function FriendList({ friendItem, goBack, navigation, profile }) {
+function FriendList({ friendItem, goBack, navigation, userInfo }) {
     const [inputSearch, setInputSearch] = useState({ value: null, isFocus: false })
     const [data, setData] = useState([])
 
@@ -126,7 +126,35 @@ function FriendList({ friendItem, goBack, navigation, profile }) {
     }
 
     const handleToDialog = (item) => {
-        navigation.navigate('Dialog')
+        if (item) {
+            HttpService.Get('api/group/room/' + item._id + '?isParallel=1')
+                .then(res => {
+                    if (res) {
+                        const { success, error, data } = res;
+
+                        if (success == 1) {
+                            const { _id } = data;
+
+                            navigation.navigate('Dialog', {
+                                userInfo: { ...userInfo },
+                                groupInfo: {
+                                    ...item,
+                                    isGroup: false,
+                                    infoGroupItemName: item.fullname || item.username,
+                                    avatar: item.avatar ? baseURL + item.avatar : null,
+                                    me: { ...userInfo.me },
+                                    to: _id
+                                }
+                            })
+                        }
+                        else if (error) {
+                            Toast.show(error, { position: Toast.positions.CENTER });
+                        }
+                    }
+                })
+        }
+        // console.log(item, 'friend item');
+
     }
 
     return (<View style={[, styles.friendView]}>
@@ -419,7 +447,7 @@ export default function FriendScreen({ navigation, receiveFriend, setReceiveFrie
                 return <FriendInvitation friendItem={friendItem} goBack={setFriendItem} profile={profile}
                     socket={socket} receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} />;
             case objFriend.friendList:
-                return <FriendList friendItem={friendItem} goBack={setFriendItem} navigation={navigation} profile={profile} socket={socket} />;
+                return <FriendList friendItem={friendItem} goBack={setFriendItem} navigation={navigation} userInfo={userInfoProp} socket={socket} />;
             case objFriend.friendRequest:
                 return <FriendRequest friendItem={friendItem} goBack={setFriendItem} profile={profile} socket={socket} />;
             case objFriend.friendFilter:

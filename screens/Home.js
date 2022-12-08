@@ -24,10 +24,10 @@ export default function HomeScreen({ navigation }) {
     const [userInfo, setUserInfo] = useState();
     const isFocused = useIsFocused();
     const localStore = LocalStore.getStore();
+    const socket = SocketIOService(localStore);
 
     useEffect(() => {
         if (isFocused) {
-            const socket = SocketIOService(localStore);
 
             HttpService.Get('api/friend/receive/')
                 .then(res => {

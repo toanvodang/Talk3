@@ -39,7 +39,7 @@ export default function DialogScreen({ navigation, route }) {
     const refPreloadData = useRef();
     const [isBlockedFriend, setIsBlockedFriend] = useState(false)
     const [placeHolderMessage, setPlaceHolderMessage] = useState('Nhập tin nhắn');
-
+    
     const _preloadMessage = (payload) => {
         // console.log(groupInfo, 'groupInfo dia');
         payload._groupID = groupInfo.to;
@@ -309,7 +309,7 @@ export default function DialogScreen({ navigation, route }) {
     const renderHistoryMess = () => {
         const { me } = groupInfo,
             { messages, fromUsersList, media } = preloadData;
-        // console.log(messages.length, 'length-view-his');
+
         return (
             <FlashList
                 ref={messageRef}
