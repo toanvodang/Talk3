@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     KeyboardAvoidingView, View, Text,
     TouchableOpacity, StyleSheet,
@@ -14,17 +14,21 @@ import FriendScreen from './Friend';
 import Constants from '../utilities/Constants';
 import { storeData, LocalStore } from '../services/LocalStorageService';
 import { useIsFocused } from '@react-navigation/native';
+import SocketIOService from '../services/SocketIOService';
 
 export default function HomeScreen({ navigation }) {
     const objScreen = { Message: 'Message', Friend: 'Friend', Setting: 'Setting' }
     const [screen, setScreen] = useState(objScreen.Message);
     const [receiveFriend, setReceiveFriend] = useState([]);
+    const refUserInfo = useRef();
+    const [userInfo, setUserInfo] = useState();
     const isFocused = useIsFocused();
+    const localStore = LocalStore.getStore();
 
     useEffect(() => {
-        //navigation.addListener("didFocus", receiveFriend);
-        // console.log(isFocused);
         if (isFocused) {
+            const socket = SocketIOService(localStore);
+
             HttpService.Get('api/friend/receive/')
                 .then(res => {
                     if (res) {
@@ -39,8 +43,25 @@ export default function HomeScreen({ navigation }) {
                         }
                     }
                 })
+
+            socket.on('user_info', (data) => handleSetUserInfo(data));
         }
     }, [isFocused])
+
+    const handleSetUserInfo = useCallback((data) => {
+        const { me } = data;
+
+        if (me.avatar) {
+            me.avatar = 'https://chat.cybercode88.com/' + me.avatar;
+        }
+        else {
+            me.avatar = null;
+        }
+
+        // refUserInfo.current = { ...data };
+        refUserInfo.current = data;
+        setUserInfo({ ...refUserInfo.current });
+    }, []);
 
     const handleSetScreen = (item) => {
         setScreen(item)
@@ -82,10 +103,12 @@ export default function HomeScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.rightView}>
-                    {screen == objScreen.Message ? <MessageScreen navigation={navigation} /> : screen == objScreen.Friend
-                        ? <FriendScreen navigation={navigation} receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} /> : <SettingScreen navigation={navigation} />}
-                </View>
+                {userInfo && (<View style={styles.rightView}>
+                    {screen == objScreen.Message ? <MessageScreen navigation={navigation} userInfoProp={userInfo} />
+                        : screen == objScreen.Friend ? <FriendScreen navigation={navigation}
+                            receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} userInfoProp={userInfo} />
+                            : <SettingScreen navigation={navigation} />}
+                </View>)}
             </View>
         </KeyboardAvoidingView></SafeAreaView>)
 }

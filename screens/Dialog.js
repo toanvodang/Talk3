@@ -21,7 +21,7 @@ import * as FileSystem from 'expo-file-system';
 
 export default function DialogScreen({ navigation, route }) {
     const { params } = route;
-    const { itemGroup } = params;
+    const { userInfo, groupInfo } = params;
     const [showModalImg, setShowModalImg] = useState(false);
     const [image, setImage] = useState();
     const [showEmoji, setShowEmoji] = useState(false);
@@ -38,15 +38,17 @@ export default function DialogScreen({ navigation, route }) {
     const socket = SocketIOService(localStore);
     const refPreloadData = useRef();
     const [isBlockedFriend, setIsBlockedFriend] = useState(false)
+    const [placeHolderMessage, setPlaceHolderMessage] = useState('Nhập tin nhắn');
 
     const _preloadMessage = (payload) => {
-        payload._groupID = itemGroup.to;
-        // console.log(itemGroup, 'itemGroup');
+        // console.log(groupInfo, 'groupInfo dia');
+        payload._groupID = groupInfo.to;
+
         const { offset, size, _groupID } = payload;
 
         socket.emit('preload', { offset, size, _groupID }, res => {
             const { data, success, error } = res;
-
+            // console.log(data.infoGroup.members, 'members');
             if (success == 1) {
                 // console.log(data.friendsBlock, 'data');
                 if (refPreloadData.current) {
@@ -103,18 +105,6 @@ export default function DialogScreen({ navigation, route }) {
                 else {
                     refPreloadData.current = { ...data };
                     setPreloadData({ ...refPreloadData.current });
-                }
-
-                if (itemGroup.friendsBlock && itemGroup.isParallel == 1) {
-                    const { fromUsersList } = data;
-                    const findItemLocked = itemGroup.friendsBlock.find(item => fromUsersList[item]);
-
-                    if (findItemLocked) {
-                        setIsBlockedFriend(true);
-                    }
-                    else {
-                        setIsBlockedFriend(false);
-                    }
                 }
             }
             else if (success == 0 && error) {
@@ -180,6 +170,26 @@ export default function DialogScreen({ navigation, route }) {
     useEffect(() => {
 
         socket.on('message', (data) => { handleMessage(data) });
+
+        socket.emit('chat_permission', { to: groupInfo.to }, (res) => {
+            if (res) {
+                const { success, error } = res;
+
+                if (success == 0 && error) {
+                    setIsBlockedFriend(true);
+                    setPlaceHolderMessage(error);
+                }
+                else if (success == 1) {
+                    setIsBlockedFriend(false);
+                    setPlaceHolderMessage('Nhập tin nhắn');
+                }
+            }
+            // console.log(res, 'chat_permission');
+        });
+
+        socket.emit('check_permission_member', { _idGroup: groupInfo.to, _idMembers: groupInfo.me._id }, (res) => {
+            // console.log(res, 'check_permission_member');
+        });
 
         (async () => {
             const camerePermission = await Camera.requestCameraPermissionsAsync()
@@ -297,7 +307,7 @@ export default function DialogScreen({ navigation, route }) {
     }
 
     const renderHistoryMess = () => {
-        const { me } = itemGroup,
+        const { me } = groupInfo,
             { messages, fromUsersList, media } = preloadData;
         // console.log(messages.length, 'length-view-his');
         return (
@@ -341,7 +351,7 @@ export default function DialogScreen({ navigation, route }) {
                         messageContent = item.message;
                     }
 
-                    return (isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
+                    return (item.type == 4 ? <View></View> : isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
                         {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
                             : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
 
@@ -379,11 +389,11 @@ export default function DialogScreen({ navigation, route }) {
     }
 
     const handleSendMess = () => {
-        if (message && message !== '') {
+        if (message && message !== '' && !isBlockedFriend) {
             setMessage(null)
 
             const mess = {
-                to: itemGroup.to,
+                to: groupInfo.to,
                 type: 0,
                 message
             };
@@ -423,15 +433,17 @@ export default function DialogScreen({ navigation, route }) {
                             alignItems: 'center',
                         }}>
                         <Svg data-v-bdfb0870="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/Svg"><Path data-v-bdfb0870="" d="M15 19.9201L8.47997 13.4001C7.70997 12.6301 7.70997 11.3701 8.47997 10.6001L15 4.08008" stroke="#292D32" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></Path></Svg>
-                        <Text style={{ fontWeight: '500', fontSize: Size.text, marginLeft: 8 }}>{itemGroup.infoGroupItemName}</Text>
+                        <Text style={{ fontWeight: '500', fontSize: Size.text, marginLeft: 8 }}>{groupInfo.infoGroupItemName}</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity activeOpacity={.8} onPress={() => navigation.navigate('HistoryMessage', {
-                        itemGroup: {
-                            ...preloadData,
-                            infoGroup: { ...itemGroup }
-                        }
-                    })}
+                    <TouchableOpacity activeOpacity={.8} onPress={() => {
+                        navigation.navigate('HistoryMessage', {
+                            preload: { ...refPreloadData.current },
+                            userInfo: { ...userInfo },
+                            groupInfo: { ...groupInfo },
+                            isBlockedFriendProp: isBlockedFriend
+                        })
+                    }}
                         style={{
                             flex: 1,
                             alignItems: 'flex-end',
@@ -439,7 +451,7 @@ export default function DialogScreen({ navigation, route }) {
                             height: 56,
                             justifyContent: 'center',
                         }}>
-                        {itemGroup.avatar ? <Image source={{ uri: itemGroup.avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
+                        {groupInfo.avatar ? <Image source={{ uri: groupInfo.avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
                             : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
                     </TouchableOpacity>
                 </View>
@@ -546,10 +558,11 @@ export default function DialogScreen({ navigation, route }) {
                     </View>
                     <TextInput
                         onChangeText={message => setMessage(message)}
-                        value={isBlockedFriend.toString()}
+                        value={message}
                         returnKeyType={'go'}
-                        placeholder='Nhập tin nhắn'
-                        disabled={true}
+                        placeholder={placeHolderMessage}
+                        editable={!isBlockedFriend}
+                        placeholderTextColor={isBlockedFriend && '#fbab00'}
                         style={{
                             height: 40,
                             color: 'rgb(17, 24, 39)',
@@ -560,10 +573,7 @@ export default function DialogScreen({ navigation, route }) {
                             flex: 1,
                             marginHorizontal: 16,
                             paddingHorizontal: 12,
-                            paddingVertical: 8,
-                            // backgroundColor: 'red',
-                            // lineHeight: 20,
-                            // alignContent: 'center'
+                            paddingVertical: 8
                         }}
                     />
                     <TouchableOpacity activeOpacity={.7} style={{

@@ -52,14 +52,15 @@ export default function LoginScreen({ navigation }) {
                 if (res) {
                     const { success, data, error } = res;
                     if (success === 1 && data) {
+                        LocalStore.setStore(userName, data);
+
+                        storeData({ storeKey: Constants.AUTH_STORAGE, value: { userName: userName, token: data } });
 
                         setInfoLogin({
                             userName: null,
                             passWord: null
                         });
 
-                        storeData({ storeKey: Constants.AUTH_STORAGE, value: { userName: userName, token: data } });
-                        LocalStore.setStore(userName, data)
                         navigation.navigate('Home');
                     }
                     else if (success === 0 && error) {

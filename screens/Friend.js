@@ -354,7 +354,10 @@ function FriendFilter({ friendItem, goBack, profile, socket }) {
     </View>)
 }
 
-export default function FriendScreen({ navigation, receiveFriend, setReceiveFriend }) {
+export default function FriendScreen({ navigation, receiveFriend, setReceiveFriend, userInfoProp }) {
+    // const { params } = route;
+    // const { userInfo } = params;
+    // console.log(userInfoProp, 'userInfoProp friend');
     const profile = LocalStore.getStore();
 
     const socket = SocketIOService(profile);
@@ -470,14 +473,15 @@ const styles = StyleSheet.create({
     },
     receiveFriendBot: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        // justifyContent: 'space-between',
 
     },
     receiveFriendInfoBotAccept: {
         backgroundColor: 'rgb(40, 84, 246)',
         paddingVertical: 12,
         paddingHorizontal: 11,
-        borderRadius: 6
+        borderRadius: 6,
+        marginRight: 10
     },
     receiveFriendInfoBotAcceptText: {
         fontWeight: '500',

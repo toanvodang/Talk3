@@ -15,7 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 
 export default function FileSharedScreen({ navigation, route }) {
     const { params } = route;
-    const { itemGroup, lastMedia } = params;
+    const { lastMedia, preload, userInfo, isBlockedFriendProp, groupInfo } = params;
     const [search, setSearch] = useState()
     const [viewImage, setViewImage] = useState({ isShow: false, uri: null, fileType: null });
     const [filterLastMedia, setFilterLastMedia] = useState([...lastMedia])
@@ -39,7 +39,13 @@ export default function FileSharedScreen({ navigation, route }) {
         <StatusBar hidden={viewImage.isShow} />
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={{ flex: 1 }}>
-                <TouchableOpacity onPress={() => navigation.navigate('HistoryMessage', { itemGroup: { ...itemGroup } })}
+                <TouchableOpacity onPress={() => navigation.navigate('HistoryMessage', {
+                    preload,
+                    userInfo,
+                    isBlockedFriendProp,
+                    groupInfo,
+                    lastMedia
+                })}
                     style={{
                         flexDirection: 'row',
                         height: 56,
