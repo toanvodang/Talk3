@@ -39,7 +39,7 @@ export default function DialogScreen({ navigation, route }) {
     const refPreloadData = useRef();
     const [isBlockedFriend, setIsBlockedFriend] = useState(false)
     const [placeHolderMessage, setPlaceHolderMessage] = useState('Nhập tin nhắn');
-    
+
     const _preloadMessage = (payload) => {
         // console.log(groupInfo, 'groupInfo dia');
         payload._groupID = groupInfo.to;
@@ -310,82 +310,84 @@ export default function DialogScreen({ navigation, route }) {
         const { me } = groupInfo,
             { messages, fromUsersList, media } = preloadData;
 
-        return (
-            <FlashList
-                ref={messageRef}
-                horizontal={false}
-                estimatedItemSize={200}
-                keyExtractor={(item, i) => i}
-                data={messages}
-                renderItem={({ item, i }) => {
-                    let fromName = '',
-                        messageContent = '',
-                        itemFrom = fromUsersList[item.from],
-                        avatar = null,
-                        isMeFrom = false;
+        if (messages.length > 0) {
+            return (
+                <FlashList
+                    ref={messageRef}
+                    horizontal={false}
+                    estimatedItemSize={200}
+                    keyExtractor={(item, i) => i}
+                    data={messages}
+                    renderItem={({ item, i }) => {
+                        let fromName = '',
+                            messageContent = '',
+                            itemFrom = fromUsersList[item.from],
+                            avatar = null,
+                            isMeFrom = false;
 
-                    if (itemFrom) {
-                        if (me._id == itemFrom._id) {
-                            fromName = 'Bạn';
-                            isMeFrom = true;
-                        }
-                        else {
-                            if (itemFrom) {
-                                fromName = itemFrom.fullname || itemFrom.username;
+                        if (itemFrom) {
+                            if (me._id == itemFrom._id) {
+                                fromName = 'Bạn';
+                                isMeFrom = true;
+                            }
+                            else {
+                                if (itemFrom) {
+                                    fromName = itemFrom.fullname || itemFrom.username;
+                                }
+                            }
+
+                            if (itemFrom.avatar) {
+                                avatar = 'https://chat.cybercode88.com/' + itemFrom.avatar;
                             }
                         }
 
-                        if (itemFrom.avatar) {
-                            avatar = 'https://chat.cybercode88.com/' + itemFrom.avatar;
+                        if (item.media) {
+                            let itemMedia = media[item.media];
+
+                            if (itemMedia) {
+                                messageContent = 'https://chat.cybercode88.com/' + itemMedia.path;
+                            }
                         }
-                    }
-
-                    if (item.media) {
-                        let itemMedia = media[item.media];
-
-                        if (itemMedia) {
-                            messageContent = 'https://chat.cybercode88.com/' + itemMedia.path;
+                        else {
+                            messageContent = item.message;
                         }
-                    }
-                    else {
-                        messageContent = item.message;
-                    }
 
-                    return (item.type == 4 ? <View></View> : isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
-                        {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
-                            : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
+                        return (item.type == 4 ? <View></View> : isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
+                            {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
+                                : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
 
-                        <View style={styles.messageItemRight}>
-                            <Text style={styles.messageItemRightName}>{fromName}</Text>
-                            {item.media ? (<View style={[styles.messageItemRightViewContent, styles.messageItemLeftViewContentImg]}>
-                                <Image source={{ uri: messageContent }} style={{ width: 100, height: 100, borderRadius: 12 }} />
-                            </View>) : (<View style={styles.messageItemRightViewContent}>
-                                <Text style={styles.messageItemRightContent}>{messageContent}</Text>
-                            </View>)}
-                        </View>
-                    </TouchableOpacity>) : (<TouchableOpacity style={[styles.messageItem]} activeOpacity={1}>
-                        {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
-                            : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
+                            <View style={styles.messageItemRight}>
+                                <Text style={styles.messageItemRightName}>{fromName}</Text>
+                                {item.media ? (<View style={[styles.messageItemRightViewContent, styles.messageItemLeftViewContentImg]}>
+                                    <Image source={{ uri: messageContent }} style={{ width: 100, height: 100, borderRadius: 12 }} />
+                                </View>) : (<View style={styles.messageItemRightViewContent}>
+                                    <Text style={styles.messageItemRightContent}>{messageContent}</Text>
+                                </View>)}
+                            </View>
+                        </TouchableOpacity>) : (<TouchableOpacity style={[styles.messageItem]} activeOpacity={1}>
+                            {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
+                                : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
 
-                        <View style={styles.messageItemLeft}>
-                            <Text style={styles.messageItemLeftName}>{fromName}</Text>
-                            {item.media ? (<View style={[styles.messageItemLeftViewContent, styles.messageItemLeftViewContentImg]}>
-                                <Image source={{ uri: messageContent }} style={{ width: 100, height: 100, borderRadius: 12 }} />
-                            </View>) : (<View style={styles.messageItemLeftViewContent}>
-                                <Text style={styles.messageItemLeftContent}>{messageContent}</Text>
-                            </View>)}
-                        </View>
-                    </TouchableOpacity>))
-                }}
-                onContentSizeChange={() => {
-                    setIsLoadMore(false);
-                    messages.length == 20 && messageRef.current?.scrollToEnd({ animated: false });
-                    messages.length > 20 && messageRef.current?.scrollToIndex({ animated: false, index: 20 });
-                }}
-                onScroll={handelScroll}
-                scrollEventThrottle={0}
-            />
-        )
+                            <View style={styles.messageItemLeft}>
+                                <Text style={styles.messageItemLeftName}>{fromName}</Text>
+                                {item.media ? (<View style={[styles.messageItemLeftViewContent, styles.messageItemLeftViewContentImg]}>
+                                    <Image source={{ uri: messageContent }} style={{ width: 100, height: 100, borderRadius: 12 }} />
+                                </View>) : (<View style={styles.messageItemLeftViewContent}>
+                                    <Text style={styles.messageItemLeftContent}>{messageContent}</Text>
+                                </View>)}
+                            </View>
+                        </TouchableOpacity>))
+                    }}
+                    onContentSizeChange={() => {
+                        setIsLoadMore(false);
+                        messages.length == 20 && messageRef.current?.scrollToEnd({ animated: false });
+                        messages.length > 20 && messageRef.current?.scrollToIndex({ animated: false, index: 20 });
+                    }}
+                    onScroll={handelScroll}
+                    scrollEventThrottle={0}
+                />
+            )
+        }
     }
 
     const handleSendMess = () => {

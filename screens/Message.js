@@ -15,7 +15,7 @@ import Modal from 'react-native-modal';
 import Toast from 'react-native-root-toast';
 import HttpService from '../services/HttpService';
 import { baseURL } from '../services/HttpService';
-import { useIsFocused } from '@react-navigation/native';
+// import { useIsFocused } from '@react-navigation/native';
 
 function MessageFilter({ setShowFilter, navigation, userInfo }) {
     const refInputFilter = useRef();
@@ -215,8 +215,6 @@ function MessageFilter({ setShowFilter, navigation, userInfo }) {
 }
 
 export default function MessageScreen({ navigation, userInfoProp }) {
-    // console.log(userInfoProp, 'userInfoProp message');
-    // const refUserInfo = useRef();
     const [showBtnCreateGroup, setShowBtnCreateGroup] = useState(false);
     const [showModalCreateGroup, setShowModalCreateGroup] = useState(false);
     const [groupInfo, setGroupInfo] = useState({
@@ -231,51 +229,48 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     const socket = SocketIOService(localStore);
     const refGroupName = useRef();
     const refGroupPrefix = useRef();
-    const isFocused = useIsFocused();
-
-    // const handleSetUserInfo = useCallback((data) => {
-    //     const { me } = data;
-
-    //     if (me.avatar) {
-    //         me.avatar = 'https://chat.cybercode88.com/' + me.avatar;
-    //     }
-    //     else {
-    //         me.avatar = null;
-    //     }
-
-    //     refUserInfo.current = { ...data };
-    //     setUserInfo({ ...data });
-    // }, []);
+    // const isFocused = useIsFocused();
 
     const handleUserOnline = useCallback((data) => {
-        // console.log(data, 'handleUserOnline--');
-        const { friendsOnline } = userInfo;//refUserInfo.current;
-        setUserInfo({
-            // ...refUserInfo.current,
+        console.log(data, 'handleUserOnline--');
+        const { friendsOnline } = userInfo;
+        const findFriend = friendsOnline.find(item => item._id != data._id);
+        let nextState = {};
 
-            ...userInfo,
-            friendsOnline: [...friendsOnline, data]
-        })
+        if (findFriend) {
+            nextState = {
+                ...userInfo,
+                friendsOnline: [...friendsOnline, { ...data }]
+            }
+
+            setUserInfo(nextState);
+        }
+        // else {
+        //     nextState = {
+        //         ...userInfo,
+        //         friendsOnline: [...friendsOnline]
+        //     }
+        // }
+
     }, []);
 
-    const handleUserOffline = useCallback((data) => {
-        // console.log(data, 'handleUserOffline--');
-        const { friendsOnline } = userInfo;//refUserInfo.current,
-        filter = friendsOnline.filter(item => item._id != data._id);
+    const handleUserOffline = (data) => {
+        console.log(data, 'handleUserOffline--');
+        const { friendsOnline } = userInfo;
+        const filter = friendsOnline.filter(item => item._id != data._id);
+
         setUserInfo({
-            // ...refUserInfo.current,
             ...userInfo,
             friendsOnline: [...filter]
-        })
-    }, []);
+        });
+    };
 
     const handleMessage = useCallback((data) => {
-        const { lastMessages } = userInfo,//refUserInfo.current,
+        const { lastMessages } = userInfo,
             { messages } = lastMessages,
             filterMessage = messages.filter(item => item.to != data.to);
 
         setUserInfo({
-            // ...refUserInfo.current,
             ...userInfo,
             lastMessages: {
                 ...lastMessages,
@@ -293,14 +288,15 @@ export default function MessageScreen({ navigation, userInfoProp }) {
         socket.on('message', (data) => handleMessage(data));
 
         return () => {
+            // console.log('Message will unmout');
             // console.log('disconnect');
             // socket.off("user_info", handleSetUserInfo);
-            socket.off("user_online", handleUserOnline);
-            socket.off("user_offline", handleUserOffline);
-            socket.off('message', handleMessage)
+            // socket.off("user_online", handleUserOnline);
+            // socket.off("user_offline", handleUserOffline);
+            // socket.off('message', handleMessage)
             socket.disconnect();
         };
-    }, [isFocused])
+    }, [userInfoProp])
 
     const toggleShowFilter = () => {
         setShowFilter(!showFilter)
@@ -308,7 +304,6 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     };
 
     const renderLastMessage = () => {
-        console.log(userInfo, 'userInfo mess');
         const { lastMessages, friendsOnline, me, myGroups } = userInfo,
             { messages, infoGroup, fromUsersList } = lastMessages;
 
@@ -321,7 +316,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
         mergeGroupToMessage.sort((a, b) => {
             return parseInt(b.createdAt) - parseInt(a.createdAt);
         });
-
+        console.log(mergeGroupToMessage, 'mergeGroupToMessage');
         return <View style={{ height: Size.deviceheight - 235 }}>
             <ScrollView>
                 {mergeGroupToMessage.map(item => {
@@ -353,7 +348,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                         messageLastFromName = messageLastFrom.username + ': ' + messageLast;
                     }
                     else {
-                        messageLastFromName = '@' + item.groupPrefix.toLowerCase();
+                        messageLastFromName = '@' + item.groupPrefix;//.toLowerCase();
                     }
 
                     if (infoGroupItem && infoGroupItem.isParallel == 1) {
@@ -386,7 +381,6 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                     if (infoGroupItem) {
                         return (<TouchableOpacity style={styles.friendMessage} activeOpacity={.7} key={item.to}
                             onPress={() => {
-                                // console.log(userInfo, 'userInfo');
                                 navigation.navigate('Dialog', {
                                     userInfo: { ...userInfo },
                                     groupInfo: {
@@ -479,22 +473,37 @@ export default function MessageScreen({ navigation, userInfoProp }) {
         }
     }
 
+    const handleUserOnlineNavDialog = ({ to, groupInfo, userInfo }) => {
+        if (to) {
+            HttpService.Get('api/group/room/' + to + '?isParallel=1')
+                .then(res => {
+                    if (res) {
+                        const { success, error, data } = res;
+
+                        if (success == 1) {
+                            const { _id } = data;
+
+                            navigation.navigate('Dialog', {
+                                userInfo,
+                                groupInfo: {
+                                    ...groupInfo,
+                                    to: _id
+                                }
+                            })
+                        }
+                        else if (error) {
+                            Toast.show(error, { position: Toast.positions.CENTER });
+                        }
+                    }
+                })
+        }
+    }
+
     return (<View style={styles.container}>
         <TouchableWithoutFeedback onPress={() => setShowBtnCreateGroup(false)}>
             {showFilter ? <MessageFilter setShowFilter={toggleShowFilter}
                 navigation={navigation}
                 userInfo={userInfo}
-            // userInfo: { ...userInfo },
-            // groupInfo: {
-            //     ...item,
-            //     isGroup: infoGroupItem.isParallel == 0 ? true : false,
-            //     infoGroupItemName,
-            //     avatar,
-            //     me: { ...me }
-            // }
-
-            // myGroups={userInfo ? userInfo.myGroups : []}
-            // me={userInfo ? userInfo.me : {}} 
             /> :
                 (<View>
                     <View style={{ flexDirection: 'row', paddingVertical: 15 }}>
@@ -503,44 +512,39 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                         <Text style={{ fontWeight: '600', color: '#070131', fontSize: Size.text + 4.8, marginLeft: 10 }}>{userInfo && (userInfo.me.fullname || userInfo.me.username)}</Text>
                     </View>
 
-                    {false && (<View>
+                    {userInfo.friendsOnline.length > 0 && (<View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 20 }}>
                             <Text style={{ color: '#31363e', fontWeight: '500', fontSize: Size.text + 1.5 }}>Online Now</Text>
                             <View style={{ flexDirection: 'row' }}>
-                                <Text style={{ color: '#2854f6', fontSize: Size.text + 1.5 }}>1</Text>
+                                <Text style={{ color: '#2854f6', fontSize: Size.text + 1.5 }}>{userInfo.friendsOnline.length}</Text>
                             </View>
                         </View>
 
                         <ScrollView>
-                            <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                                <View>
-                                    <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />
-                                    <View style={[styles.iconDot, styles.iconDotOnline]}></View>
-                                </View>
-                                <View style={styles.friendMessageInfo}>
-                                    <View style={styles.friendMessageInfoText}>
-                                        <Ionicons name="people" size={Size.text} color="#a9a9a9" />
-                                        <Text style={styles.infoFriendName}>ss</Text>
-                                    </View>
-                                    <Text style={styles.nickname}>@ss</Text>
-                                </View>
-                            </TouchableOpacity>
+                            {userInfo.friendsOnline.map(item => {
+                                return (<TouchableOpacity style={styles.friendMessage} activeOpacity={.7} key={item._id}
+                                    onPress={() => handleUserOnlineNavDialog({
+                                        to: item._id,
+                                        userInfo: { ...userInfo },
+                                        groupInfo: {
+                                            ...item,
+                                            isGroup: false,
+                                            infoGroupItemName: item.fullname || item.username,
+                                            avatar: item.avatar || null,
+                                            me: { ...userInfo.me }
+                                        }
+                                    })}>
+                                    <View>
+                                        <View style={{ width: 36 }}>
+                                            {item.avatar ? <Image source={{ uri: item.avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} />
+                                                : <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />}
+                                            <View style={[styles.iconDot, styles.iconDotOnline]}></View>
+                                        </View>
 
-                            <TouchableOpacity style={styles.friendMessage} activeOpacity={.7} onPress={() => navigation.navigate('Dialog')}>
-                                <View>
-                                    <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />
-                                    <View style={[styles.iconDot, styles.iconDotOnline]}></View>
-                                </View>
-                                <View style={styles.friendMessageInfo}>
-                                    <View style={styles.friendMessageInfoText}>
-                                        <Ionicons name="people" size={Size.text} color="#a9a9a9" />
-                                        <Text style={styles.infoFriendName}>ss</Text>
+                                        <View><Text style={[styles.infoFriendName, { marginTop: 5 }]}>{item.fullname || item.username}</Text></View>
                                     </View>
-                                    <Text style={styles.nickname}>@ss</Text>
-                                </View>
-                                <Text style={styles.infoFriendNameDate}>05:10</Text>
-                            </TouchableOpacity>
-
+                                </TouchableOpacity>)
+                            })}
                         </ScrollView>
                     </View>
                     )}

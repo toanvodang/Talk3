@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     KeyboardAvoidingView, View, Text,
     TouchableOpacity, StyleSheet,
@@ -20,7 +20,6 @@ export default function HomeScreen({ navigation }) {
     const objScreen = { Message: 'Message', Friend: 'Friend', Setting: 'Setting' }
     const [screen, setScreen] = useState(objScreen.Message);
     const [receiveFriend, setReceiveFriend] = useState([]);
-    const refUserInfo = useRef();
     const [userInfo, setUserInfo] = useState();
     const isFocused = useIsFocused();
     const localStore = LocalStore.getStore();
@@ -46,9 +45,14 @@ export default function HomeScreen({ navigation }) {
 
             socket.on('user_info', (data) => handleSetUserInfo(data));
         }
+
+        return () => {
+            // console.log('home will unmount');
+        }
     }, [isFocused])
 
-    const handleSetUserInfo = useCallback((data) => {
+    const handleSetUserInfo = (data) => {
+        console.log(data);
         const { me } = data;
 
         if (me.avatar) {
@@ -58,10 +62,8 @@ export default function HomeScreen({ navigation }) {
             me.avatar = null;
         }
 
-        // refUserInfo.current = { ...data };
-        refUserInfo.current = data;
-        setUserInfo({ ...refUserInfo.current });
-    }, []);
+        setUserInfo({ ...data });
+    };
 
     const handleSetScreen = (item) => {
         setScreen(item)
@@ -69,6 +71,7 @@ export default function HomeScreen({ navigation }) {
     };
 
     const handleLogOut = () => {
+        setUserInfo(null);
         storeData({ storeKey: Constants.AUTH_STORAGE, value: null });
         LocalStore.setStore(null, null);
         navigation.navigate('Login');
@@ -104,10 +107,9 @@ export default function HomeScreen({ navigation }) {
                 </View>
 
                 {userInfo && (<View style={styles.rightView}>
-                    {screen == objScreen.Message ? <MessageScreen navigation={navigation} userInfoProp={userInfo} />
-                        : screen == objScreen.Friend ? <FriendScreen navigation={navigation}
-                            receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} userInfoProp={userInfo} />
-                            : <SettingScreen navigation={navigation} />}
+                    {screen == objScreen.Message && <MessageScreen navigation={navigation} userInfoProp={userInfo} />}
+                    {screen == objScreen.Friend && <FriendScreen navigation={navigation} receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} userInfoProp={userInfo} />}
+                    {screen == objScreen.Setting && <SettingScreen navigation={navigation} />}
                 </View>)}
             </View>
         </KeyboardAvoidingView></SafeAreaView>)
