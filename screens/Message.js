@@ -232,7 +232,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     // const isFocused = useIsFocused();
 
     const handleUserOnline = useCallback((data) => {
-        console.log(data, 'handleUserOnline--');
+        //console.log(data, 'handleUserOnline--');
         const { friendsOnline } = userInfo;
         const findFriend = friendsOnline.find(item => item._id != data._id);
         let nextState = {};
@@ -255,7 +255,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     }, []);
 
     const handleUserOffline = (data) => {
-        console.log(data, 'handleUserOffline--');
+        //console.log(data, 'handleUserOffline--');
         const { friendsOnline } = userInfo;
         const filter = friendsOnline.filter(item => item._id != data._id);
 
@@ -304,9 +304,10 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     };
 
     const renderLastMessage = () => {
+        debugger
         const { lastMessages, friendsOnline, me, myGroups } = userInfo,
             { messages, infoGroup, fromUsersList } = lastMessages;
-
+        //console.log(fromUsersList, 'fromUsersList');
         const filterGroupNotInMessage = myGroups.filter(item => {
             return !messages.find(itemMess => itemMess.to == item._id);
         })
@@ -320,13 +321,21 @@ export default function MessageScreen({ navigation, userInfoProp }) {
         return <View style={{ height: Size.deviceheight - 235 }}>
             <ScrollView>
                 {mergeGroupToMessage.map(item => {
-
+                    console.log(item, 'item');
                     if (item.groupid) {
                         item = { ...item, to: item._id };
                     }
 
-                    const infoGroupItem = infoGroup[item.to] || { ...item, isParallel: 0, to: item._id },
-                        messageLastFrom = fromUsersList[item.from];
+                    const infoGroupItem = infoGroup[item.to] || { ...item, isParallel: 0, to: item._id };
+                    let messageLastFrom = fromUsersList[item.from];
+
+                    if (!messageLastFrom && infoGroupItem) {
+                        const { members } = infoGroupItem;
+
+                        if (members) {
+                            messageLastFrom = members.find(itemMember => itemMember._id == item.from);
+                        }
+                    }
 
                     let infoGroupItemName = '',
                         messageLastFromName = '',
