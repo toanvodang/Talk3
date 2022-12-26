@@ -470,7 +470,7 @@ export default function DialogScreen({ navigation, route }) {
                     </TouchableOpacity>
 
                     <TouchableOpacity activeOpacity={.8} onPress={() => {
-                        navigation.navigate('HistoryMessage', {
+                        preloadData && navigation.navigate('HistoryMessage', {
                             preload: { ...refPreloadData.current },
                             userInfo: { ...userInfo },
                             groupInfo: { ...groupInfo },

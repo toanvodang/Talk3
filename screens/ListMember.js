@@ -1,42 +1,52 @@
-import { useState } from 'react';
 import {
     KeyboardAvoidingView, View, Text,
-    TextInput, TouchableOpacity, StyleSheet,
+    TouchableOpacity, StyleSheet,
     Platform, ScrollView,
     TouchableWithoutFeedback,
     Keyboard, Image
 } from 'react-native';
 import { Size } from '../utilities/Styles';
-import Modal from 'react-native-modal';
+import avatarDefault from '../assets/default.8a7fd05f.png';
 import { baseURL } from '../services/HttpService';
 import Svg, { Path, SvgUri } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
 
 export default function ListMemberScreen({ navigation, route }) {
     const { params } = route;
     const { lastMedia, preload, userInfo, isBlockedFriendProp, groupInfo, members } = params;
-    const [search, setSearch] = useState()
-    const [viewImage, setViewImage] = useState({ isShow: false, uri: null, fileType: null });
-    const [filterLastMedia, setFilterLastMedia] = useState([...lastMedia])
-    const handleSearch = () => {
-        if (search && search !== '') {
-            const _filterLastMedia = lastMedia.filter(item => {
-                return item.fileName && item.fileName.toLowerCase().includes(search.toLowerCase());
-            })
 
-            setFilterLastMedia([..._filterLastMedia]);
-        }
-        else {
-            setFilterLastMedia([...lastMedia]);
-        }
+    const renderMember = () => {
+        const { permissionGroup } = preload;
+
+        return members.map(item => {
+            const { avatar, _id, fullname, username } = item;
+            let role = [];
+
+            if (permissionGroup) {
+                role = permissionGroup[_id]?.role;
+            }
+
+            return (<TouchableOpacity key={_id} style={styles.fileSharedItem}
+                onPress={() => navigation.navigate('MemberDetail', {
+                    preload,
+                    userInfo,
+                    isBlockedFriendProp,
+                    groupInfo,
+                    lastMedia,
+                    member: item
+                })}>
+                <View style={styles.fileSharedItemInfo}>
+                    {avatar ? <Image source={{ uri: baseURL + avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} /> :
+                        <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />}
+                    <Text style={[{ marginLeft: 10 }, role.includes('created_group') && { color: 'rgb(253, 107, 104)' }]}>{fullname || username}</Text>
+                </View>
+            </TouchableOpacity>)
+        })
     }
 
     return (<KeyboardAvoidingView
         extraScrollHeight={150}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}>
-        <StatusBar hidden={viewImage.isShow} />
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={{ flex: 1 }}>
                 <TouchableOpacity onPress={() => navigation.navigate('HistoryMessage', {
@@ -57,66 +67,10 @@ export default function ListMemberScreen({ navigation, route }) {
                 </TouchableOpacity>
 
                 <ScrollView>
-                    {members.map(item => {
-                        const { avatar, _id, fullname, username } = item;
-
-                        return (<TouchableOpacity key={_id} style={styles.fileSharedItem}
-                            onPress={() => navigation.navigate('MemberDetail', {
-                                preload,
-                                userInfo,
-                                isBlockedFriendProp,
-                                groupInfo,
-                                lastMedia,
-                                member: item
-                            })}>
-                            <View style={styles.fileSharedItemInfo}>
-                                {avatar ? <Image source={{ uri: baseURL + avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} /> :
-                                    <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />}
-                                <Text style={{ marginLeft: 10 }}>{fullname || username}</Text>
-                            </View>
-                        </TouchableOpacity>)
-                    })}
+                    {renderMember()}
                 </ScrollView>
             </View>
         </TouchableWithoutFeedback>
-
-        <Modal
-            isVisible={viewImage.isShow}
-            backdropColor={'#000'}
-            backdropOpacity={.8}
-            animationIn={'zoomInDown'}
-            animationOut={'zoomOutUp'}
-        >
-            <View style={{
-                borderRadius: 4,
-                padding: 12,
-                flex: 1
-            }}>
-                <TouchableOpacity onPress={() => setViewImage({ isShow: false, uri: null, fileType: null })}>
-                    <Ionicons name="close-circle-outline" size={Size.iconSize + 4} color="#fff" />
-                </TouchableOpacity>
-
-                {(viewImage.fileType == 'image/png' || viewImage.fileType === 'image/jpeg')
-                    && <Image source={{ uri: viewImage.uri }} style={{
-                        width: '100%',
-                        height: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 6
-                    }} resizeMode={'contain'} />}
-
-                {viewImage.fileType === 'image/svg+xml' && <SvgUri
-                    width={'100%'}
-                    height={'100%'}
-                    style={{
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 6
-                    }}
-                    uri={viewImage.uri}
-                />}
-            </View>
-        </Modal>
     </KeyboardAvoidingView >)
 }
 
@@ -126,17 +80,20 @@ const styles = StyleSheet.create({
         paddingTop: 30,
     },
     fileSharedItem: {
-        marginTop: 12,
+        marginTop: 7,
         backgroundColor: 'rgb(240, 242, 245)',
         borderRadius: 8,
         paddingVertical: 8,
         paddingHorizontal: 16,
-        height: 64,
+        height: 44,
         flexDirection: 'row',
         alignItems: 'center'
     },
     fileSharedItemInfo: {
-        marginLeft: 8
+        marginLeft: 8,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     fileSharedItemName: {
         fontSize: Size.text,

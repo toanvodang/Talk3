@@ -26,7 +26,7 @@ export default function HistoryMessageScreen({ navigation, route }) {
 
     const localStore = LocalStore.getStore();
     const socket = SocketIOService(localStore);
-    console.log(infoGroup, 'groupInfo histo');
+    console.log(infoGroup.isParallel, 'groupInfo histo');
     useEffect(() => {
         lastMedia.sort((a, b) => {
             return parseInt(b.createdAt) - parseInt(a.createdAt);
@@ -107,14 +107,14 @@ export default function HistoryMessageScreen({ navigation, route }) {
                     {groupInfo.avatar ? (<Image source={{ uri: groupInfo.avatar }} style={{ width: 64, height: 64, borderRadius: 64 }} />)
                         : (<Image source={avatarDefault} style={{ width: 64, height: 64, borderRadius: 64 }} />)}
                     <Text style={{ marginTop: 8, fontSize: Size.text + 2, fontWeight: '500' }}>{groupInfo.infoGroupItemName}</Text>
-                    {infoGroup && (<TouchableOpacity activeOpacity={.8} onPress={() => { Toast.show('Đã sao chép', { position: Toast.positions.CENTER }) }}
+                    {infoGroup && infoGroup.isParallel == 0 && (<TouchableOpacity activeOpacity={.8} onPress={() => { Toast.show('Đã sao chép', { position: Toast.positions.CENTER }) }}
                         style={{ flexDirection: 'row', alignItems: 'center', padding: 8 }}>
                         <Text style={{ fontSize: Size.text + 2, fontWeight: '500', color: '#rgb(107, 114, 128)', marginRight: 7 }}>{'@' + infoGroup.groupPrefix}</Text>
                         <Svg data-v-a41a837c="" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/Svg" class="ml-2"><Path data-v-a41a837c="" d="M14.1666 11.1666V13.6666C14.1666 16.9999 12.8333 18.3333 9.49996 18.3333H6.33329C2.99996 18.3333 1.66663 16.9999 1.66663 13.6666V10.4999C1.66663 7.16659 2.99996 5.83325 6.33329 5.83325H8.83329" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M14.1667 11.1666H11.5C9.50004 11.1666 8.83337 10.4999 8.83337 8.49992V5.83325L14.1667 11.1666Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M9.66663 1.66675H13" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M5.83337 4.16675C5.83337 2.78341 6.95004 1.66675 8.33337 1.66675H10.5167" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M18.3334 6.66675V11.8251C18.3334 13.1167 17.2834 14.1667 15.9917 14.1667" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M18.3334 6.66675H15.8334C13.9584 6.66675 13.3334 6.04175 13.3334 4.16675V1.66675L18.3334 6.66675Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path></Svg>
                     </TouchableOpacity>)}
                 </View>
 
-                {infoGroup.members && (
+                {infoGroup.isParallel == 0 && infoGroup.members.length > 0 && (
                     <View style={{
                         flex: 1,
                         paddingHorizontal: 12,
