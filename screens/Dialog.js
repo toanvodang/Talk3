@@ -227,6 +227,9 @@ export default function DialogScreen({ navigation, route }) {
     const toggleShowEmoji = (isUnmount) => {
         // console.log((isUnmount));
         isUnmount ? setShowEmoji(false) : setShowEmoji(!showEmoji)
+
+        messageRef.current?.prepareForLayoutAnimationRender();
+
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
 
@@ -302,11 +305,17 @@ export default function DialogScreen({ navigation, route }) {
     const handelScroll = (e) => {
         if (offsetPreload < preloadData.messages.length && e.nativeEvent.contentOffset.y <= 0) {
             setOffsetPreload(offsetPreload + 20)
-            setIsLoadMore(true)
+            setIsLoadMore(true);
+
+            messageRef.current?.prepareForLayoutAnimationRender();
+
+            // After removing the item, we can start the animation.
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         }
     }
 
     const renderHistoryMess = () => {
+        // console.log(1);
         const { me } = groupInfo,
             { messages, fromUsersList, media } = preloadData;
 
@@ -352,7 +361,14 @@ export default function DialogScreen({ navigation, route }) {
                             messageContent = item.message;
                         }
 
-                        return (item.type == 4 ? <View></View> : isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
+                        return (item.type == 4 ? <View style={{
+                            paddingBottom: 15,
+                            flex: 1, flexDirection: 'row', alignContent: 'center',
+                            alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            <Text style={{ color: 'rgb(40, 84, 246)', fontSize: Size.text }}>Bạn</Text>
+                            <Text style={{ fontSize: Size.text }}> đã tham gia nhóm</Text>
+                        </View> : isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
                             {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />
                                 : <Image source={avatarDefault} style={{ width: 32, height: 32, borderRadius: 32 }} />}
 
@@ -380,10 +396,16 @@ export default function DialogScreen({ navigation, route }) {
                     }}
                     onContentSizeChange={() => {
                         setIsLoadMore(false);
-                        messages.length == 20 && messageRef.current?.scrollToEnd({ animated: false });
-                        messages.length > 20 && messageRef.current?.scrollToIndex({ animated: false, index: 20 });
+                        // console.log(messages.length, 'messages.length')
+                        messages.length <= 20 && messageRef.current?.scrollToEnd();
+                        messages.length > 20 && messageRef.current?.scrollToIndex({ index: 20 });
+
+                        messageRef.current?.prepareForLayoutAnimationRender();
+
+                        // After removing the item, we can start the animation.
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                     }}
-                    onScroll={handelScroll}
+                    // onScroll={handelScroll}
                     scrollEventThrottle={0}
                 />
             )
@@ -410,6 +432,15 @@ export default function DialogScreen({ navigation, route }) {
                     //     icon: Icon.components.Error,
                     // });
                 }
+
+                messageRef.current?.scrollToEnd({ animated: false });
+
+
+                messageRef.current?.prepareForLayoutAnimationRender();
+
+                // After removing the item, we can start the animation.
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
             })
         }
     }

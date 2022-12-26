@@ -15,7 +15,6 @@ import Modal from 'react-native-modal';
 import Toast from 'react-native-root-toast';
 import HttpService from '../services/HttpService';
 import { baseURL } from '../services/HttpService';
-// import { useIsFocused } from '@react-navigation/native';
 
 function MessageFilter({ setShowFilter, navigation, userInfo }) {
     const refInputFilter = useRef();
@@ -218,6 +217,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     const [showBtnCreateGroup, setShowBtnCreateGroup] = useState(false);
     const [showModalCreateGroup, setShowModalCreateGroup] = useState(false);
     const [groupInfo, setGroupInfo] = useState({
+        isDisableCreateGroup: false,
         groupPrefix: { placeHolder: '@nhom_cua_ban', isValid: true, value: null },
         name: { placeHolder: 'Tên nhóm', isValid: true, value: null }
     });
@@ -229,21 +229,24 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     const socket = SocketIOService(localStore);
     const refGroupName = useRef();
     const refGroupPrefix = useRef();
-    // const isFocused = useIsFocused();
 
     const handleUserOnline = useCallback((data) => {
-        //console.log(data, 'handleUserOnline--');
+        // console.log(data, 'handleUserOnline--');
         const { friendsOnline } = userInfo;
-        const findFriend = friendsOnline.find(item => item._id != data._id);
+        // console.log(friendsOnline, 'friendsOnlinefriendsOnline')
+        const findFriend = friendsOnline.find(item => item._id == data._id);
         let nextState = {};
 
-        if (findFriend) {
+        if (!findFriend) {
             nextState = {
                 ...userInfo,
                 friendsOnline: [...friendsOnline, { ...data }]
             }
-
+            // console.log(nextState, 'nextState onlinie');
             setUserInfo(nextState);
+        }
+        else {
+            // console.log(friendsOnline, 'friendsOnline')
         }
         // else {
         //     nextState = {
@@ -255,7 +258,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     }, []);
 
     const handleUserOffline = (data) => {
-        //console.log(data, 'handleUserOffline--');
+        console.log(data, 'handleUserOffline--');
         const { friendsOnline } = userInfo;
         const filter = friendsOnline.filter(item => item._id != data._id);
 
@@ -280,7 +283,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     }, []);
 
     useEffect(() => {
-        // console.log(userInfo.me, 'isFocused mess');
+        // console.log(userInfo.friendsOnline, 'isFocused mess');
         // socket.on('connect', () => console.log(socket.id, 'connect--'))
         // socket.on('user_info', (data) => handleSetUserInfo(data));
         socket.on('user_online', (data) => handleUserOnline(data));
@@ -317,11 +320,11 @@ export default function MessageScreen({ navigation, userInfoProp }) {
         mergeGroupToMessage.sort((a, b) => {
             return parseInt(b.createdAt) - parseInt(a.createdAt);
         });
-        console.log(mergeGroupToMessage, 'mergeGroupToMessage');
+        // console.log(mergeGroupToMessage, 'mergeGroupToMessage');
         return <View style={{ height: Size.deviceheight - 235 }}>
             <ScrollView>
                 {mergeGroupToMessage.map(item => {
-                    console.log(item, 'item');
+                    // console.log(item, 'item');
                     if (item.groupid) {
                         item = { ...item, to: item._id };
                     }
@@ -423,9 +426,30 @@ export default function MessageScreen({ navigation, userInfoProp }) {
     }
 
     const handleCreateGroup = () => {
+        // alert(1)
         const { groupPrefix, name } = groupInfo;
 
-        if (groupPrefix.isValid && name.isValid) {
+        if (!name.value || name.value === '') {
+            setGroupInfo({
+                ...groupInfo,
+                isDisableCreateGroup: false,
+                name: {
+                    ...name,
+                    isValid: false
+                }
+            })
+        }
+        else if (!groupPrefix.value || groupPrefix.value === '') {
+            setGroupInfo({
+                ...groupInfo,
+                isDisableCreateGroup: false,
+                groupPrefix: {
+                    ...groupPrefix,
+                    isValid: false
+                }
+            })
+        }
+        else if (groupPrefix.value && name.value && groupPrefix.value !== '' && name.value !== '') {
             socket.emit('create_group', {
                 groupPrefix: groupPrefix.value,
                 name: name.value
@@ -437,21 +461,10 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                         Toast.show('Đã tạo nhóm thành công', { position: Toast.positions.CENTER });
 
                         setShowModalCreateGroup(false);
-                        const { myGroups, me } = userInfo;//refUserInfo.current;
-                        // refUserInfo.current = {
-                        //     ...refUserInfo.current,
-                        //     myGroups: [{
-                        //         createdAt: moment().valueOf(),
-                        //         createdBy: me._id,
-                        //         groupPrefix: groupPrefix.value,
-                        //         name: name.value,
-                        //         groupid: moment().format('DDMMyyyy') + '1',
-                        //         _id: data._id
-                        //     }, ...myGroups]
-                        // };
+
+                        const { myGroups, me } = userInfo;
 
                         setUserInfo({
-                            // ...refUserInfo.current
                             ...userInfo,
                             myGroups: [{
                                 createdAt: moment().valueOf(),
@@ -463,16 +476,19 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                             }, ...myGroups]
                         });
 
-                        setGroupInfo({
-                            name: {
-                                ...name,
-                                value: null
-                            },
-                            groupPrefix: {
-                                ...groupPrefix,
-                                value: null
-                            }
-                        })
+                        // setGroupInfo({
+                        //     isDisableCreateGroup: false,
+                        //     name: {
+                        //         ...name,
+                        //         isValid: true,
+                        //         value: null
+                        //     },
+                        //     groupPrefix: {
+                        //         ...groupPrefix,
+                        //         isValid: true,
+                        //         value: null
+                        //     }
+                        // })
                     }
                     else if (error) {
                         Toast.show(error, { position: Toast.positions.CENTER });
@@ -518,7 +534,14 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                     <View style={{ flexDirection: 'row', paddingVertical: 15 }}>
                         {userInfo && userInfo.me.avatar ? <Image source={{ uri: userInfo.me.avatar }} style={{ width: 48, height: 48, borderRadius: 48 }} />
                             : <Image source={avatarDefault} style={{ width: 48, height: 48, borderRadius: 48 }} />}
-                        <Text style={{ fontWeight: '600', color: '#070131', fontSize: Size.text + 4.8, marginLeft: 10 }}>{userInfo && (userInfo.me.fullname || userInfo.me.username)}</Text>
+                        <View style={{ flexDirection: 'column' }}>
+                            <Text style={{ fontWeight: '600', color: '#070131', fontSize: Size.text + 4.8, marginLeft: 10 }}>
+                                {userInfo && (userInfo.me.fullname || userInfo.me.username)}</Text>
+                            <Text style={{
+                                fontWeight: '400', color: '#afafaf', fontSize: Size.text, flex: 1, marginLeft: 10
+                            }}>
+                                {userInfo && userInfo.me.bio}</Text>
+                        </View>
                     </View>
 
                     {userInfo.friendsOnline.length > 0 && (<View>
@@ -545,7 +568,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                                     })}>
                                     <View>
                                         <View style={{ width: 36 }}>
-                                            {item.avatar ? <Image source={{ uri: item.avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} />
+                                            {item.avatar ? <Image source={{ uri: baseURL + item.avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} />
                                                 : <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />}
                                             <View style={[styles.iconDot, styles.iconDotOnline]}></View>
                                         </View>
@@ -581,7 +604,15 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                                         padding: 10
                                     }} onPress={() => {
                                         setShowBtnCreateGroup(false);
-                                        setShowModalCreateGroup(true);
+                                        setGroupInfo({
+                                            isDisableCreateGroup: false,
+                                            groupPrefix: { placeHolder: '@nhom_cua_ban', isValid: true, value: null },
+                                            name: { placeHolder: 'Tên nhóm', isValid: true, value: null }
+                                        });
+
+                                        setTimeout(() => {
+                                            setShowModalCreateGroup(true);
+                                        }, 100);
                                     }}>
                                         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <Path d="M9.16006 10.87C9.06006 10.86 8.94006 10.86 8.83006 10.87C6.45006 10.79 4.56006 8.84 4.56006 6.44C4.56006 3.99 6.54006 2 9.00006 2C11.4501 2 13.4401 3.99 13.4401 6.44C13.4301 8.84 11.5401 10.79 9.16006 10.87Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path>
@@ -644,7 +675,7 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                     width: '100%'
                 }}>
                     <Text>Tạo nhóm</Text>
-                    <TouchableOpacity onPress={() => setShowModalCreateGroup(false)}>
+                    <TouchableOpacity onPress={() => { setShowModalCreateGroup(false) }}>
                         <Ionicons name="close-circle-outline" size={Size.iconSize + 4} color="gray" />
                     </TouchableOpacity>
                 </View>
@@ -742,7 +773,11 @@ export default function MessageScreen({ navigation, userInfoProp }) {
                 </View>
 
                 <View style={styles.styViewLogin}>
-                    <TouchableOpacity onPress={() => handleCreateGroup()}>
+                    <TouchableOpacity disabled={groupInfo.isDisableCreateGroup}
+                        onPress={() => {
+                            setGroupInfo({ ...groupInfo, isDisableCreateGroup: true })
+                            handleCreateGroup()
+                        }}>
                         <Text style={styles.styTextLogin}>Tạo nhóm</Text>
                     </TouchableOpacity>
                 </View>

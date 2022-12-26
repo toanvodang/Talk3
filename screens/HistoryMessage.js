@@ -26,7 +26,7 @@ export default function HistoryMessageScreen({ navigation, route }) {
 
     const localStore = LocalStore.getStore();
     const socket = SocketIOService(localStore);
-    // console.log(groupInfo, 'groupInfo histo');
+    console.log(infoGroup, 'groupInfo histo');
     useEffect(() => {
         lastMedia.sort((a, b) => {
             return parseInt(b.createdAt) - parseInt(a.createdAt);
@@ -68,16 +68,18 @@ export default function HistoryMessageScreen({ navigation, route }) {
                         height: 56,
                         justifyContent: 'center'
                     }}>
-                        <Svg data-v-a41a837c="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><Path data-v-a41a837c="" d="M15 19.9201L8.47997 13.4001C7.70997 12.6301 7.70997 11.3701 8.47997 10.6001L15 4.08008" stroke="#292D32" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></Path></Svg>
+                        <Svg data-v-a41a837c="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/Svg">
+                            <Path data-v-a41a837c="" d="M15 19.9201L8.47997 13.4001C7.70997 12.6301 7.70997 11.3701 8.47997 10.6001L15 4.08008" stroke="#292D32" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></Path>
+                        </Svg>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setShowModalBlock(true)} style={{
                         flex: 1,
                         alignItems: 'flex-end',
                         paddingRight: 10,
                         height: 56,
-                        justifyContent: 'center',
+                        justifyContent: 'center'
                     }}>
-                        <Svg data-v-a41a837c="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><Path data-v-a41a837c="" d="M5 10C3.9 10 3 10.9 3 12C3 13.1 3.9 14 5 14C6.1 14 7 13.1 7 12C7 10.9 6.1 10 5 10Z" stroke="#292D32" stroke-width="1.5"></Path><Path data-v-a41a837c="" d="M19 10C17.9 10 17 10.9 17 12C17 13.1 17.9 14 19 14C20.1 14 21 13.1 21 12C21 10.9 20.1 10 19 10Z" stroke="#292D32" stroke-width="1.5"></Path><Path data-v-a41a837c="" d="M12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10Z" stroke="#292D32" stroke-width="1.5"></Path></Svg>
+                        <Svg data-v-a41a837c="" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/Svg"><Path data-v-a41a837c="" d="M5 10C3.9 10 3 10.9 3 12C3 13.1 3.9 14 5 14C6.1 14 7 13.1 7 12C7 10.9 6.1 10 5 10Z" stroke="#292D32" stroke-width="1.5"></Path><Path data-v-a41a837c="" d="M19 10C17.9 10 17 10.9 17 12C17 13.1 17.9 14 19 14C20.1 14 21 13.1 21 12C21 10.9 20.1 10 19 10Z" stroke="#292D32" stroke-width="1.5"></Path><Path data-v-a41a837c="" d="M12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10Z" stroke="#292D32" stroke-width="1.5"></Path></Svg>
                     </TouchableOpacity>
                 </View>
 
@@ -104,9 +106,60 @@ export default function HistoryMessageScreen({ navigation, route }) {
                 <View style={{ alignItems: 'center' }}>
                     {groupInfo.avatar ? (<Image source={{ uri: groupInfo.avatar }} style={{ width: 64, height: 64, borderRadius: 64 }} />)
                         : (<Image source={avatarDefault} style={{ width: 64, height: 64, borderRadius: 64 }} />)}
-
                     <Text style={{ marginTop: 8, fontSize: Size.text + 2, fontWeight: '500' }}>{groupInfo.infoGroupItemName}</Text>
+                    {infoGroup && (<TouchableOpacity activeOpacity={.8} onPress={() => { Toast.show('Đã sao chép', { position: Toast.positions.CENTER }) }}
+                        style={{ flexDirection: 'row', alignItems: 'center', padding: 8 }}>
+                        <Text style={{ fontSize: Size.text + 2, fontWeight: '500', color: '#rgb(107, 114, 128)', marginRight: 7 }}>{'@' + infoGroup.groupPrefix}</Text>
+                        <Svg data-v-a41a837c="" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/Svg" class="ml-2"><Path data-v-a41a837c="" d="M14.1666 11.1666V13.6666C14.1666 16.9999 12.8333 18.3333 9.49996 18.3333H6.33329C2.99996 18.3333 1.66663 16.9999 1.66663 13.6666V10.4999C1.66663 7.16659 2.99996 5.83325 6.33329 5.83325H8.83329" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M14.1667 11.1666H11.5C9.50004 11.1666 8.83337 10.4999 8.83337 8.49992V5.83325L14.1667 11.1666Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M9.66663 1.66675H13" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M5.83337 4.16675C5.83337 2.78341 6.95004 1.66675 8.33337 1.66675H10.5167" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M18.3334 6.66675V11.8251C18.3334 13.1167 17.2834 14.1667 15.9917 14.1667" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path><Path data-v-a41a837c="" d="M18.3334 6.66675H15.8334C13.9584 6.66675 13.3334 6.04175 13.3334 4.16675V1.66675L18.3334 6.66675Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></Path></Svg>
+                    </TouchableOpacity>)}
                 </View>
+
+                {infoGroup.members && (
+                    <View style={{
+                        flex: 1,
+                        paddingHorizontal: 12,
+                        marginTop: 20
+                    }}>
+                        <View style={{
+                            flexDirection: 'row', justifyContent: 'space-between', height: 24,
+                            alignItems: 'center', marginBottom: 12
+                        }}>
+                            <Text style={{ fontSize: Size.text }}>{infoGroup.members.length} người tham gia</Text>
+                            <TouchableOpacity style={{ color: '#4a6fc4' }}
+                                onPress={() => navigation.navigate('ListMember', {
+                                    preload,
+                                    userInfo,
+                                    isBlockedFriendProp,
+                                    groupInfo,
+                                    lastMedia,
+                                    members: infoGroup.members
+                                })}>
+                                <Text style={{ color: '#4a6fc4', textDecorationLine: 'underline', fontSize: Size.text }}>Xem tất cả</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView>
+                            {infoGroup.members.map(item => {
+                                // console.log(item, 'tt')
+                                const { username, fullname, _id, avatar } = item;
+
+                                return (<TouchableOpacity style={styles.memberItem} key={_id}
+                                    onPress={() => navigation.navigate('MemberDetail', {
+                                        preload,
+                                        userInfo,
+                                        isBlockedFriendProp,
+                                        groupInfo,
+                                        lastMedia,
+                                        member: item
+                                    })}>
+                                    {avatar ? <Image source={{ uri: baseURL + avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} /> :
+                                        <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />}
+                                    <Text style={{ marginLeft: 10 }}>{fullname || username}</Text>
+                                </TouchableOpacity>)
+                            })}
+                        </ScrollView>
+                    </View>
+                )}
 
                 <View style={{
                     flex: 1,
@@ -132,8 +185,8 @@ export default function HistoryMessageScreen({ navigation, route }) {
 
                     <ScrollView>
                         {lastMedia.map(item => {
-                            const { fileType, path, _id } = item;
-                            const toUrl = baseURL + path;
+                            const { fileType, Path, _id } = item;
+                            const toUrl = baseURL + Path;
 
                             if (fileType === 'image/png' || fileType === 'image/jpeg') {
                                 return (<TouchableOpacity style={styles.historyItem} key={_id}
@@ -141,7 +194,7 @@ export default function HistoryMessageScreen({ navigation, route }) {
                                     <Image source={{ uri: toUrl }} style={styles.historyItemImg} resizeMode={'contain'} />
                                 </TouchableOpacity>)
                             }
-                            else if (fileType === 'image/svg+xml') {
+                            else if (fileType === 'image/Svg+xml') {
                                 return (<TouchableOpacity onPress={() => setViewImage({ isShow: true, uri: toUrl, fileType })}
                                     style={styles.historyItem} key={_id}>
                                     <SvgUri
@@ -182,7 +235,7 @@ export default function HistoryMessageScreen({ navigation, route }) {
                         borderRadius: 6
                     }} resizeMode={'contain'} />}
 
-                {viewImage.fileType === 'image/svg+xml' && <SvgUri
+                {viewImage.fileType === 'image/Svg+xml' && <SvgUri
                     width={'100%'}
                     height={'100%'}
                     style={{
@@ -198,6 +251,14 @@ export default function HistoryMessageScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+    memberItem: {
+        flexDirection: 'row',
+        height: 48,
+        alignItems: 'center',
+        backgroundColor: 'rgb(243, 244, 246)',
+        borderRadius: 8,
+        paddingBottom: 12
+    },
     historyItem: {
         marginTop: 12,
         alignItems: 'center',

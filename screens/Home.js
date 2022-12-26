@@ -52,7 +52,7 @@ export default function HomeScreen({ navigation }) {
     }, [isFocused])
 
     const handleSetUserInfo = (data) => {
-        console.log(data);
+        // console.log(data.me, 'handleSetUserInfo');
         const { me } = data;
 
         if (me.avatar) {
@@ -106,11 +106,11 @@ export default function HomeScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                {userInfo && (<View style={styles.rightView}>
+                {userInfo ? (<View style={styles.rightView}>
                     {screen == objScreen.Message && <MessageScreen navigation={navigation} userInfoProp={userInfo} />}
                     {screen == objScreen.Friend && <FriendScreen navigation={navigation} receiveFriend={receiveFriend} setReceiveFriend={setReceiveFriend} userInfoProp={userInfo} />}
-                    {screen == objScreen.Setting && <SettingScreen navigation={navigation} />}
-                </View>)}
+                    {screen == objScreen.Setting && <SettingScreen navigation={navigation} userInfoProp={userInfo} setUserInfoProp={setUserInfo} />}
+                </View>) : <View style={styles.rightView} />}
             </View>
         </KeyboardAvoidingView></SafeAreaView>)
 }
@@ -126,14 +126,14 @@ const HEIGHT_HEADER = Size.deviceheight,
             flexDirection: 'row',
             justifyContent: 'center',
             alignContent: 'center',
-            alignSelf: 'center',
+            alignSelf: 'center'
         },
         leftButton: {
             width: 68,
             paddingTop: 30,
             backgroundColor: '#fff',
             alignItems: 'center',
-
+            // backgroundColor: 'red'
         },
         leftButtonItem: {
             width: 68,

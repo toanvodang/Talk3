@@ -17,22 +17,24 @@ import { LocalStore } from '../services/LocalStorageService';
 import * as ImagePicker from 'expo-image-picker';
 // import { DocumentPicker, ImagePicker } from 'expo';
 import { Camera, CameraType } from 'expo-camera';
+import HttpService from '../services/HttpService';
 //https://upload.wikimedia.org/wikipedia/vi/thumb/b/b0/Avatar-Teaser-Poster.jpg/220px-Avatar-Teaser-Poster.jpg
-export default function SettingScreen() {
+export default function SettingScreen({ setUserInfoProp, userInfoProp }) {
 
     const [showCamera, setShowCamera] = useState(false)
-    const [showPickerAvatar, setShowPickerAvatar] = useState(false)
+    const [showPickerAvatar, setShowPickerAvatar] = useState(false);
+    const { me } = userInfoProp;
     const [data, setData] = useState({
-        fullName: null,
-        email: null,
-        status: null,
-        avatar: null,
-        sound: true
+        fullName: me.fullname,
+        email: me.email,
+        status: me.bio,
+        avatar: me.avatar,
+        sound: me.settings ? me.settings.enabledSound == 1 ? true : false : false
     })
-    const [image, setImage] = useState()
+    const [image, setImage] = useState(me.avatar)
     const [focus, setFocus] = useState()
     const [hasCameraPermission, setHasCameraPermission] = useState()
-    const profile = LocalStore.getStore();
+    // const profile = LocalStore.getStore();
 
     // const [expoPushToken, setExpoPushToken] = useState('');
     // const [notification, setNotification] = useState(false);
@@ -57,7 +59,9 @@ export default function SettingScreen() {
     }
 
     const handleUpdate = () => {
-        Keyboard.dismiss()
+        Keyboard.dismiss();
+
+
 
         const { fullName, email, status, sound } = data;
         const obj = {
@@ -67,31 +71,33 @@ export default function SettingScreen() {
             bio: status,
             enabledSound: sound
         };
-        const { token } = profile
 
-        fetch('https://chat.cybercode88.com/api/me/update', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify(obj),
-        }).then(res => res.json())
+        HttpService.Post('/api/me/update', obj)
             .then(res => {
-                console.log(res);
+
                 if (res) {
                     const { success, data, error } = res;
 
                     if (success === 1 && data) {
+                        setUserInfoProp({
+                            ...userInfoProp,
+                            me: {
+                                ...userInfoProp.me,
+                                fullname: fullName,
+                                email: email,
+                                status: status,
+                                sound: sound,
+                                // avatar: ,
+                            }
+                        });
+
                         Toast.show('Cập nhật thành công', { position: Toast.positions.CENTER });
                     }
                     else if (success === 0 && error) {
                         Toast.show(error, { position: Toast.positions.CENTER });
                     }
                 }
-            })
-            .catch((error) => console.error(error))
+            });
     }
 
     const takePic = async () => {
@@ -150,9 +156,6 @@ export default function SettingScreen() {
     return (<View>
         <ScrollView style={styles.container}>
             <View style={styles.fromInput}>
-
-
-
                 {/* <View
                 style={{
                     flex: 1,
@@ -218,7 +221,7 @@ export default function SettingScreen() {
                             onBlur={() => setFocus()}
                             value={data.email}
                             ref={refEmail}
-                            placeholder='sss'
+                            // placeholder='sss'
                             returnKeyType={'done'}
                             // onSubmitEditing={() => refPass.current.focus()}
                             style={[styles.text, styles.inputStyle]} />
