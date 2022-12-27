@@ -26,7 +26,7 @@ export default function HistoryMessageScreen({ navigation, route }) {
 
     const localStore = LocalStore.getStore();
     const socket = SocketIOService(localStore);
-    console.log(infoGroup.isParallel, 'groupInfo histo');
+    // console.log(infoGroup.isParallel, 'groupInfo histo');
     useEffect(() => {
         lastMedia.sort((a, b) => {
             return parseInt(b.createdAt) - parseInt(a.createdAt);
