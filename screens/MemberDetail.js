@@ -7,12 +7,16 @@ import avatarDefault from '../assets/default.8a7fd05f.png';
 import { Size } from '../utilities/Styles';
 import { baseURL } from '../services/HttpService';
 import Svg, { Path } from 'react-native-svg';
+import SocketIOService from '../services/SocketIOService';
+import { LocalStore } from '../services/LocalStorageService';
 
 export default function MemberDetailScreen({ navigation, route }) {
     const { params } = route;
     const { lastMedia, preload, userInfo, isBlockedFriendProp, groupInfo, member } = params;
+    const localStore = LocalStore.getStore();
+    const socket = SocketIOService(localStore);
 
-    console.log(userInfo.me, member._id, 'member');
+    // console.log(userInfo.me, member._id, 'member');
 
     const { avatar, _id, username, fullname } = member;
     let isMe = false;
@@ -22,13 +26,69 @@ export default function MemberDetailScreen({ navigation, route }) {
     }
 
     const toDialogMember = () => {
-        // navigation.navigate('Dialog', {
-        //     preload,
-        //     userInfo,
-        //     isBlockedFriendProp,
-        //     groupInfo,
-        //     lastMedia
-        // })
+        // console.log(member, 'mem');
+
+        HttpService.Get('api/group/room/' + _id + '?isParallel=1')
+            .then(res => {
+                // console.log(res, 'red');
+                if (res) {
+                    const { success, error, data } = res;
+
+                    if (success == 1) {
+                        // const { _id } = data;
+                        // console.log(data._id, 'red');
+
+                        socket.emit('check_permission_member', { _idGroup: data._id, _idMembers: groupInfo.me._id }, (res) => {
+                            console.log(res, 'check_permission_member');
+                            if (res) {
+                                const { error, success } = res;
+
+                                if (success == 1) {
+                                    navigation.navigate('Dialog', {
+                                        // preload,
+                                        userInfo,
+                                        // isBlockedFriendProp,
+                                        groupInfo: {
+                                            ...groupInfo,
+                                            to: data._id
+                                        },
+                                        // lastMedia
+                                    })
+                                }
+                                else {
+
+                                }
+                            }
+                        });
+
+                        // navigation.navigate('Dialog', {
+                        //     userInfo: { ...userInfo },
+                        //     groupInfo: {
+                        //         ...item,
+                        //         isGroup: false,
+                        //         infoGroupItemName: item.fullname || item.username,
+                        //         avatar: item.avatar ? baseURL + item.avatar : null,
+                        //         me: { ...userInfo.me },
+                        //         to: _id
+                        //     }
+                        // })
+
+                        // navigation.navigate('Dialog', {
+                        //     // preload,
+                        //     userInfo,
+                        //     // isBlockedFriendProp,
+                        //     groupInfo: {
+                        //         ...groupInfo,
+                        //         to: data._id
+                        //     },
+                        //     // lastMedia
+                        // })
+                    }
+                    else if (error) {
+                        Toast.show(error, { position: Toast.positions.CENTER });
+                    }
+                }
+            })
     }
 
     return (<KeyboardAvoidingView

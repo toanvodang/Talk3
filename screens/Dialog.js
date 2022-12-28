@@ -41,13 +41,14 @@ export default function DialogScreen({ navigation, route }) {
     const [placeHolderMessage, setPlaceHolderMessage] = useState('Nhập tin nhắn');
 
     const _preloadMessage = (payload) => {
-        // console.log(groupInfo, 'groupInfo dia');
+        // console.log(groupInfo.to, 'groupInfo dia');
         payload._groupID = groupInfo.to;
 
         const { offset, size, _groupID } = payload;
 
         socket.emit('preload', { offset, size, _groupID }, res => {
             const { data, success, error } = res;
+            // console.log(_groupID, '_groupID');
             // console.log(data.infoGroup.members, 'members');
             if (success == 1) {
                 // console.log(data.friendsBlock, 'data');
@@ -173,6 +174,7 @@ export default function DialogScreen({ navigation, route }) {
 
         socket.emit('chat_permission', { to: groupInfo.to }, (res) => {
             if (res) {
+                // console.log(res, 'chat_permission');
                 const { success, error } = res;
 
                 if (success == 0 && error) {
@@ -188,7 +190,7 @@ export default function DialogScreen({ navigation, route }) {
         });
 
         socket.emit('check_permission_member', { _idGroup: groupInfo.to, _idMembers: groupInfo.me._id }, (res) => {
-            // console.log(res, 'check_permission_member');
+            // console.log(groupInfo, 'check_permission_member');
         });
 
         (async () => {
