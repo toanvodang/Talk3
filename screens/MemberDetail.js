@@ -22,13 +22,13 @@ export default function MemberDetailScreen({ navigation, route }) {
     }
 
     const toDialogMember = () => {
-        navigation.navigate('Dialog', {
-            preload,
-            userInfo,
-            isBlockedFriendProp,
-            groupInfo,
-            lastMedia
-        })
+        // navigation.navigate('Dialog', {
+        //     preload,
+        //     userInfo,
+        //     isBlockedFriendProp,
+        //     groupInfo,
+        //     lastMedia
+        // })
     }
 
     return (<KeyboardAvoidingView
