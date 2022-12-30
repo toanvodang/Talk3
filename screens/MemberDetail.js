@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
     KeyboardAvoidingView, View, Text,
     TouchableOpacity, StyleSheet,
@@ -7,8 +8,10 @@ import avatarDefault from '../assets/default.8a7fd05f.png';
 import { Size } from '../utilities/Styles';
 import { baseURL } from '../services/HttpService';
 import Svg, { Path } from 'react-native-svg';
+import HttpService from '../services/HttpService';
 import SocketIOService from '../services/SocketIOService';
 import { LocalStore } from '../services/LocalStorageService';
+import Toast from 'react-native-root-toast';
 
 export default function MemberDetailScreen({ navigation, route }) {
     const { params } = route;
@@ -17,6 +20,25 @@ export default function MemberDetailScreen({ navigation, route }) {
     const socket = SocketIOService(localStore);
 
     // console.log(userInfo.me, member._id, 'member');
+    const [receiveFriend, setReceiveFriend] = useState([]);
+
+    useEffect(() => {
+        HttpService.Get('api/friend/lists/')
+            .then(res => {
+                if (res) {
+                    const { success, data, error } = res
+
+                    if (success === 1 && data && data.items) {
+                        const { items } = data;
+                        // console.log(items, 'ddd');
+                        setReceiveFriend([...items]);
+                    }
+                    else if (success === 0 && error) {
+                        //Toast.show(error, { position: Toast.positions.CENTER });
+                    }
+                }
+            })
+    }, []);
 
     const { avatar, _id, username, fullname } = member;
     let isMe = false;
@@ -26,69 +48,57 @@ export default function MemberDetailScreen({ navigation, route }) {
     }
 
     const toDialogMember = () => {
-        // console.log(member, 'mem');
-
         HttpService.Get('api/group/room/' + _id + '?isParallel=1')
             .then(res => {
-                // console.log(res, 'red');
                 if (res) {
                     const { success, error, data } = res;
 
                     if (success == 1) {
-                        // const { _id } = data;
-                        // console.log(data._id, 'red');
+                        const { lastMessages } = userInfo,
+                            { infoGroup } = lastMessages,
+                            _to = data._id,
+                            infoGroupItem = infoGroup[_to],
+                            { createdBy, members } = infoGroupItem;
 
-                        socket.emit('check_permission_member', { _idGroup: data._id, _idMembers: groupInfo.me._id }, (res) => {
-                            console.log(res, 'check_permission_member');
-                            if (res) {
-                                const { error, success } = res;
+                        const findMemberByUserCreate = members.find(itemMember => itemMember._id != createdBy._id);
 
-                                if (success == 1) {
-                                    navigation.navigate('Dialog', {
-                                        // preload,
-                                        userInfo,
-                                        // isBlockedFriendProp,
-                                        groupInfo: {
-                                            ...groupInfo,
-                                            to: data._id
-                                        },
-                                        // lastMedia
-                                    })
-                                }
-                                else {
+                        let infoGroupItemName = '',
+                            avatar = null;
 
-                                }
-                            }
-                        });
+                        if (findMemberByUserCreate) {
+                            infoGroupItemName = findMemberByUserCreate.fullname || findMemberByUserCreate.username;
+                            avatar = findMemberByUserCreate.avatar && 'https://chat.cybercode88.com/' + findMemberByUserCreate.avatar;
+                        }
 
-                        // navigation.navigate('Dialog', {
-                        //     userInfo: { ...userInfo },
-                        //     groupInfo: {
-                        //         ...item,
-                        //         isGroup: false,
-                        //         infoGroupItemName: item.fullname || item.username,
-                        //         avatar: item.avatar ? baseURL + item.avatar : null,
-                        //         me: { ...userInfo.me },
-                        //         to: _id
-                        //     }
-                        // })
-
-                        // navigation.navigate('Dialog', {
-                        //     // preload,
-                        //     userInfo,
-                        //     // isBlockedFriendProp,
-                        //     groupInfo: {
-                        //         ...groupInfo,
-                        //         to: data._id
-                        //     },
-                        //     // lastMedia
-                        // })
+                        navigation.navigate('Dialog', {
+                            userInfo,
+                            groupInfo: {
+                                ...groupInfo,
+                                to: _to,
+                                avatar,
+                                infoGroupItemName
+                            },
+                            isReload: true
+                        })
                     }
                     else if (error) {
                         Toast.show(error, { position: Toast.positions.CENTER });
                     }
                 }
             })
+    }
+
+    const handleMakeFriend = () => {
+        socket.emit('add_friend', { _idFriend: _id }, res => {
+            const { data, success, error } = res;
+
+            if (success == 1) {
+                Toast.show(data, { position: Toast.positions.CENTER });
+            }
+            else if (error) {
+                Toast.show(error, { position: Toast.positions.CENTER });
+            }
+        })
     }
 
     return (<KeyboardAvoidingView
@@ -118,7 +128,7 @@ export default function MemberDetailScreen({ navigation, route }) {
                     <Image source={avatarDefault} style={{ width: 64, height: 64, borderRadius: 64 }} />}
                 <Text style={{ marginTop: 10 }}>{'@' + username}</Text>
 
-                {!isMe && (<TouchableOpacity onPress={() => toDialogMember()}
+                {!isMe && (receiveFriend.length > 0 && receiveFriend.find(itemFriend => itemFriend._id == _id) ? (<TouchableOpacity onPress={() => toDialogMember()}
                     style={{
                         backgroundColor: 'rgb(40, 84, 246)',
                         paddingHorizontal: 15,
@@ -127,7 +137,16 @@ export default function MemberDetailScreen({ navigation, route }) {
                         marginTop: 10
                     }}>
                     <Text style={{ fontWeight: '500', fontSize: Size.text, color: '#fff' }}>Gửi tin nhắn</Text>
-                </TouchableOpacity>)}
+                </TouchableOpacity>) : (<TouchableOpacity onPress={() => handleMakeFriend()}
+                    style={{
+                        backgroundColor: 'rgb(40, 84, 246)',
+                        paddingHorizontal: 15,
+                        paddingVertical: 10,
+                        borderRadius: 5,
+                        marginTop: 10
+                    }}>
+                    <Text style={{ fontWeight: '500', fontSize: Size.text, color: '#fff' }}>Kết bạn</Text>
+                </TouchableOpacity>))}
             </View>
         </View>
     </KeyboardAvoidingView >)

@@ -21,17 +21,15 @@ export default function HistoryMessageScreen({ navigation, route }) {
     const { preload, userInfo, isBlockedFriendProp, groupInfo } = params;
     const { infoGroup, lastMedia } = preload;
     const [viewImage, setViewImage] = useState({ isShow: false, uri: null, fileType: null });
-    const [showModalBlock, setShowModalBlock] = useState(false);
+    const [showModalBlock, setShowModalBlock] = useState({ isShow: false, permission: null });
     const [isBlockedFriend, setIsBlockedFriend] = useState(isBlockedFriendProp)
 
     const localStore = LocalStore.getStore();
     const socket = SocketIOService(localStore);
-    // console.log(infoGroup.isParallel, 'groupInfo histo');
-    useEffect(() => {
-        lastMedia.sort((a, b) => {
-            return parseInt(b.createdAt) - parseInt(a.createdAt);
-        });
-    }, [])
+
+    lastMedia && lastMedia.sort((a, b) => {
+        return parseInt(b.createdAt) - parseInt(a.createdAt);
+    });
 
     const handleBlockOrUnblock = () => {
         const { members } = infoGroup,
@@ -41,14 +39,13 @@ export default function HistoryMessageScreen({ navigation, route }) {
         if (findPartner) {
             let status = isBlockedFriend ? 0 : 1;
 
-            // console.log(findPartner._id, status, 'findPartner');
             socket.emit('block_or_unblock_friend', { status, _idFriend: findPartner._id }, res => {
                 if (res) {
                     const { data, success, error } = res;
 
                     if (success == 1) {
                         Toast.show(data, { position: Toast.positions.CENTER });
-                        setShowModalBlock(false);
+                        setShowModalBlock({ ...showModalBlock, isShow: false });
                         setIsBlockedFriend(!isBlockedFriend);
                     }
                 }
@@ -56,8 +53,33 @@ export default function HistoryMessageScreen({ navigation, route }) {
         }
     }
 
+    const handleShowModalBlock = (isShow) => {
+        //chat cá nhân
+        if (infoGroup && infoGroup.isParallel == 1) {
+            setShowModalBlock({ isShow, permission: 'personal' });
+        }
+        //chat nhóm
+        else {
+            socket.emit('check_permission_member', { _idGroup: groupInfo.to, _idMembers: groupInfo.me._id }, (res) => {
+                // console.log(res, 'check_permission_member');
+                if (res) {
+                    const { data, success, error } = res;
+
+                    if (success == 1) {
+                        if (data == 'created_group') {
+                            setShowModalBlock({ isShow, permission: 'created_group' });
+                        }
+                        else if (data == 'member') {
+                            setShowModalBlock({ isShow, permission: 'member' });
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     return (<View style={styles.container}>
-        <TouchableWithoutFeedback onPress={() => setShowModalBlock(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowModalBlock({ ...showModalBlock, isShow: false })}>
             <View style={{ flex: 1 }}>
                 <StatusBar hidden={viewImage.isShow} />
                 <View style={{ flexDirection: 'row' }}>
@@ -72,7 +94,7 @@ export default function HistoryMessageScreen({ navigation, route }) {
                             <Path data-v-a41a837c="" d="M15 19.9201L8.47997 13.4001C7.70997 12.6301 7.70997 11.3701 8.47997 10.6001L15 4.08008" stroke="#292D32" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></Path>
                         </Svg>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setShowModalBlock(true)} style={{
+                    <TouchableOpacity onPress={() => handleShowModalBlock(true)} style={{
                         flex: 1,
                         alignItems: 'flex-end',
                         paddingRight: 10,
@@ -83,7 +105,7 @@ export default function HistoryMessageScreen({ navigation, route }) {
                     </TouchableOpacity>
                 </View>
 
-                {infoGroup && infoGroup.isParallel == 1 && showModalBlock && <View style={{
+                {showModalBlock.isShow && showModalBlock.permission && <View style={{
                     position: 'absolute',
                     width: 200,
                     top: 45,
@@ -92,15 +114,74 @@ export default function HistoryMessageScreen({ navigation, route }) {
                     borderRadius: 8,
                     zIndex: 1
                 }}>
-                    <TouchableOpacity style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: 10
-                    }} onPress={() => { handleBlockOrUnblock() }}>
-                        <SimpleLineIcons name="ban" size={Size.iconSize} color="black" />
-                        <Text style={{ flex: 1, marginLeft: 10, fontSize: Size.fontSize }}>{isBlockedFriend ? 'Bỏ chặn' : 'Chặn'}</Text>
-                    </TouchableOpacity>
+                    {showModalBlock.permission == 'created_group' ? (<View>
+                        <TouchableOpacity style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: 10
+                        }} onPress={() => { alert('building...') }}>
+                            <Ionicons name="ios-person-remove-outline" size={Size.iconSize} color="black" />
+                            <Text style={{ flex: 1, marginLeft: 10, fontSize: Size.fontSize }}>Rời nhóm</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: 10
+                        }} onPress={() => {
+                            setShowModalBlock({ ...showModalBlock, isShow: false });
+                            navigation.navigate('ManagerMember', {
+                                preload,
+                                userInfo,
+                                isBlockedFriendProp,
+                                groupInfo,
+                                lastMedia,
+                                members: infoGroup.members
+                            })
+                        }}>
+                            <Ionicons name="ios-people-outline" size={Size.iconSize} color="black" />
+                            <Text style={{ flex: 1, marginLeft: 10, fontSize: Size.fontSize }}>Quản lý thành viên</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: 10
+                        }} onPress={() => {
+                            setShowModalBlock({ ...showModalBlock, isShow: false });
+                            navigation.navigate('AddMember', {
+                                preload,
+                                userInfo,
+                                isBlockedFriendProp,
+                                groupInfo,
+                                lastMedia
+                            })
+                        }}>
+                            <Ionicons name="ios-person-add-outline" size={Size.iconSize} color="black" />
+                            <Text style={{ flex: 1, marginLeft: 10, fontSize: Size.fontSize }}>Thêm thành viên</Text>
+                        </TouchableOpacity>
+                    </View>) :
+                        showModalBlock.permission == 'member' ? (<TouchableOpacity style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: 10
+                        }} onPress={() => { handleBlockOrUnblock() }}>
+                            <Ionicons name="ios-person-remove-outline" size={Size.iconSize} color="black" />
+                            <Text style={{ flex: 1, marginLeft: 10, fontSize: Size.fontSize }}>Rời nhóm</Text>
+                        </TouchableOpacity>) :
+                            (<TouchableOpacity style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: 10
+                            }} onPress={() => { handleBlockOrUnblock() }}>
+                                <SimpleLineIcons name="ban" size={Size.iconSize} color="black" />
+                                <Text style={{ flex: 1, marginLeft: 10, fontSize: Size.fontSize }}>{isBlockedFriend ? 'Bỏ chặn' : 'Chặn'}</Text>
+                            </TouchableOpacity>)}
                 </View>}
 
                 <View style={{ alignItems: 'center' }}>
@@ -184,9 +265,9 @@ export default function HistoryMessageScreen({ navigation, route }) {
                     </View>
 
                     <ScrollView>
-                        {lastMedia.map(item => {
-                            const { fileType, Path, _id } = item;
-                            const toUrl = baseURL + Path;
+                        {lastMedia && lastMedia.map(item => {
+                            const { fileType, path, _id } = item;
+                            const toUrl = baseURL + path;
 
                             if (fileType === 'image/png' || fileType === 'image/jpeg') {
                                 return (<TouchableOpacity style={styles.historyItem} key={_id}

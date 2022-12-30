@@ -17,11 +17,12 @@ import Toast from 'react-native-root-toast';
 import { AntDesign } from '@expo/vector-icons';
 import { LocalStore } from '../services/LocalStorageService';
 import SocketIOService from '../services/SocketIOService';
+import { useIsFocused } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 
 export default function DialogScreen({ navigation, route }) {
     const { params } = route;
-    const { userInfo, groupInfo } = params;
+    const { userInfo, groupInfo, isReload } = params;
     const [showModalImg, setShowModalImg] = useState(false);
     const [image, setImage] = useState();
     const [showEmoji, setShowEmoji] = useState(false);
@@ -39,6 +40,9 @@ export default function DialogScreen({ navigation, route }) {
     const refPreloadData = useRef();
     const [isBlockedFriend, setIsBlockedFriend] = useState(false)
     const [placeHolderMessage, setPlaceHolderMessage] = useState('Nhập tin nhắn');
+    const isFocused = useIsFocused();
+
+    // console.log(userInfo.lastMessages.infoGroup['638766bd8bbc24f6bb8c3a2a'], 'to dialo');
 
     const _preloadMessage = (payload) => {
         // console.log(groupInfo.to, 'groupInfo dia');
@@ -165,11 +169,20 @@ export default function DialogScreen({ navigation, route }) {
     }
 
     useEffect(() => {
-        isLoadMore && _preloadMessage({ offset: offsetPreload, size: 20 });
-    }, [isLoadMore, offsetPreload])
+        if (isFocused) {
+
+            if (refPreloadData.current && isReload) {
+                refPreloadData.current = null;
+            }
+
+            // console.log(groupInfo.to, isReload, 'groupInfogroupInfo');
+            (isLoadMore || isReload) && _preloadMessage({ offset: offsetPreload, size: 20 });
+        }
+    }, [isLoadMore, offsetPreload, isFocused])
 
     useEffect(() => {
-
+        // if (isFocused) {
+        // console.log(groupInfo.to, 'groupInfo.to');
         socket.on('message', (data) => { handleMessage(data) });
 
         socket.emit('chat_permission', { to: groupInfo.to }, (res) => {
@@ -189,9 +202,9 @@ export default function DialogScreen({ navigation, route }) {
             // console.log(res, 'chat_permission');
         });
 
-        socket.emit('check_permission_member', { _idGroup: groupInfo.to, _idMembers: groupInfo.me._id }, (res) => {
-            // console.log(groupInfo, 'check_permission_member');
-        });
+        // socket.emit('check_permission_member', { _idGroup: groupInfo.to, _idMembers: groupInfo.me._id }, (res) => {
+        //     console.log(res, 'check_permission_member');
+        // });
 
         (async () => {
             const camerePermission = await Camera.requestCameraPermissionsAsync()
@@ -207,6 +220,7 @@ export default function DialogScreen({ navigation, route }) {
         //     // Keyboard.removeAllListeners('keyboardDidShow');
         //     // console.log(_keyboardDidShow, '_keyboardDidShow');
         // };
+        // }
     }, [])
 
     if (hasCameraPermission === undefined) {
@@ -320,7 +334,7 @@ export default function DialogScreen({ navigation, route }) {
         // console.log(1);
         const { me } = groupInfo,
             { messages, fromUsersList, media } = preloadData;
-
+        // console.log(fromUsersList, 'fromUsersList');
         if (messages.length > 0) {
             return (
                 <FlashList
@@ -336,39 +350,60 @@ export default function DialogScreen({ navigation, route }) {
                             avatar = null,
                             isMeFrom = false;
 
-                        if (itemFrom) {
-                            if (me._id == itemFrom._id) {
+                        if (item.type == 4) {
+                            const fromId = item.from,
+                                fromUser = fromId && fromUsersList[fromId];
+                            // console.log(fromId, me._id, 'fromUser');
+                            if (me._id == fromId) {
                                 fromName = 'Bạn';
-                                isMeFrom = true;
                             }
-                            else {
-                                if (itemFrom) {
-                                    fromName = itemFrom.fullname || itemFrom.username;
-                                }
-                            }
-
-                            if (itemFrom.avatar) {
-                                avatar = 'https://chat.cybercode88.com/' + itemFrom.avatar;
-                            }
-                        }
-
-                        if (item.media) {
-                            let itemMedia = media[item.media];
-
-                            if (itemMedia) {
-                                messageContent = 'https://chat.cybercode88.com/' + itemMedia.path;
+                            else if (fromUser) {
+                                fromName = fromUser.fullname || fromUser.username;
                             }
                         }
                         else {
-                            messageContent = item.message;
+                            if (itemFrom) {
+                                if (me._id == itemFrom._id) {
+                                    fromName = 'Bạn';
+                                    isMeFrom = true;
+                                }
+                                else {
+                                    if (itemFrom) {
+                                        fromName = itemFrom.fullname || itemFrom.username;
+                                    }
+                                }
+
+                                if (itemFrom.avatar) {
+                                    avatar = 'https://chat.cybercode88.com/' + itemFrom.avatar;
+                                }
+                            }
+
+                            if (item.media) {
+                                let itemMedia = media[item.media];
+
+                                if (itemMedia) {
+                                    messageContent = 'https://chat.cybercode88.com/' + itemMedia.path;
+                                }
+                            }
+                            else {
+                                messageContent = item.message;
+                            }
                         }
 
-                        return (item.type == 4 ? <View style={{
+                        // console.log(fromUsersList, 'item');
+                        return (item.type == 5 ? (<View style={{
                             paddingBottom: 15,
                             flex: 1, flexDirection: 'row', alignContent: 'center',
                             alignItems: 'center', justifyContent: 'center'
                         }}>
-                            <Text style={{ color: 'rgb(40, 84, 246)', fontSize: Size.text }}>Bạn</Text>
+                            <Text style={{ color: 'rgb(40, 84, 246)', fontSize: Size.text }}>{fromName}</Text>
+                            <Text style={{ fontSize: Size.text }}> đã rời khỏi nhóm</Text>
+                        </View>) : item.type == 4 ? <View style={{
+                            paddingBottom: 15,
+                            flex: 1, flexDirection: 'row', alignContent: 'center',
+                            alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            <Text style={{ color: 'rgb(40, 84, 246)', fontSize: Size.text }}>{fromName}</Text>
                             <Text style={{ fontSize: Size.text }}> đã tham gia nhóm</Text>
                         </View> : isMeFrom ? (<TouchableOpacity style={[styles.messageItemReverse]} activeOpacity={1}>
                             {avatar ? <Image source={{ uri: avatar }} style={{ width: 32, height: 32, borderRadius: 32 }} />

@@ -16,9 +16,9 @@ export default function ListMemberScreen({ navigation, route }) {
 
     const renderMember = () => {
         const { permissionGroup } = preload;
-
+        // console.log(members, 'members');
         return members.map(item => {
-            const { avatar, _id, fullname, username } = item;
+            const { avatar, _id, fullname, username, bio } = item;
             let role = [];
 
             if (permissionGroup) {
@@ -37,7 +37,10 @@ export default function ListMemberScreen({ navigation, route }) {
                 <View style={styles.fileSharedItemInfo}>
                     {avatar ? <Image source={{ uri: baseURL + avatar }} style={{ width: 36, height: 36, borderRadius: 36 }} /> :
                         <Image source={avatarDefault} style={{ width: 36, height: 36, borderRadius: 36 }} />}
-                    <Text style={[{ marginLeft: 10 }, role.includes('created_group') && { color: 'rgb(253, 107, 104)' }]}>{fullname || username}</Text>
+                    <View>
+                        <Text style={[{ marginLeft: 10 }, role.includes('created_group') && { color: 'rgb(253, 107, 104)' }]}>{username || fullname}</Text>
+                        <Text style={[{ marginLeft: 10, color: '#afafaf' }]}>{bio}</Text>
+                    </View>
                 </View>
             </TouchableOpacity>)
         })
